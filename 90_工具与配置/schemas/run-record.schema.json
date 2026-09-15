@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "run-record.schema.json",
+  "title": "Run Record (one reproducible experiment run)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "timestamp", "git_commit", "git_dirty", "input_hashes", "config", "random_seeds", "dependency_versions", "python_version", "os", "command", "outputs", "model_spec_version"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "run_id": {"type": "string", "pattern": "^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$"},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "git_commit": {"type": ["string", "null"]},
+    "git_dirty": {"type": "boolean"},
+    "input_hashes": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
+    "code_hashes": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
+    "config_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "config": {"type": "object"},
+    "random_seeds": {"type": "object", "additionalProperties": {"type": "integer"}},
+    "dependency_versions": {"type": "object", "additionalProperties": {"type": "string"}},
+    "python_version": {"type": "string"},
+    "os": {"type": "string"},
+    "hardware": {"type": "object", "additionalProperties": false, "properties": {"cpu": {"type": "string"}, "memory_gb": {"type": ["number", "null"]}}},
+    "command": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "outputs": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["path", "sha256"], "properties": {"path": {"type": "string"}, "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "kind": {"enum": ["metrics", "figure", "table", "artifact", "stdout", "stderr"]}}}},
+    "metrics": {"type": "object", "additionalProperties": {"type": ["number", "string", "boolean", "null"]}},
+    "runtime_seconds": {"type": ["number", "null"], "minimum": 0},
+    "parent_run": {"type": ["string", "null"]},
+    "model_spec_version": {"type": "string"},
+    "notes": {"type": "string"}
+  }
+}

@@ -1,0 +1,238 @@
+schema_version: "1.0"
+mode: "AUTO-ORCHESTRATED"
+default_router: "mm-orchestrator"
+functional_skill_policy: "orchestrator-selected"
+selection_policy: "one-primary-functional-skill"
+discovery_budget:
+  max_active_implicit_skills: 24
+  max_description_chars_total: 17000
+  max_trigger_terms_per_route: 24
+  max_total_trigger_terms: 240
+reference_only_roots:
+  - "90_工具与配置/third_party/references"
+gates:
+  G1: "problem selection"
+  G2: "model/method selection"
+  G3: "MODEL_SPEC freeze"
+  G4: "baseline approval"
+  G5: "final method/results freeze"
+  G6: "final figure approval"
+  G7: "ready-to-submit"
+routes:
+  preflight:
+    priority: 30
+    stage: ["S0"]
+    skill: "mm-preflight"
+    agents: ["researcher"]
+    review_agents: []
+    prerequisites: []
+    terms: ["preflight", "readiness", "environment", "inputs inventory", "项目体检", "环境检查", "输入清单"]
+  evidence:
+    priority: 50
+    stage: ["S1", "S2"]
+    skill: "mm-evidence-retrieval"
+    agents: ["researcher"]
+    review_agents: ["critic"]
+    prerequisites: []
+    terms: ["attachment", "dataset", "data evidence", "parameter source", "附件", "数据证据", "参数来源", "公开数据"]
+  literature:
+    priority: 60
+    stage: ["S2", "S12"]
+    skill: "mm-literature-integrity"
+    agents: ["researcher"]
+    review_agents: ["critic", "reviewer"]
+    prerequisites: []
+    terms: ["literature", "paper search", "citation", "novelty", "文献", "论文检索", "引用", "创新性"]
+  route_review:
+    priority: 70
+    stage: ["S3", "S4"]
+    skill: "mm-route-tournament"
+    agents: ["researcher", "critic"]
+    review_agents: ["judge"]
+    prerequisites: ["G1"]
+    terms: ["candidate route", "candidate modeling route", "compare methods", "route tree", "beam search", "候选路线", "候选建模路线", "方法比较", "模型路线评审", "方案树", "有限预算方案树"]
+    inputs: ["03_建模工作区/problem/PROBLEM_ANALYSIS.json", "03_建模工作区/data/audits", "03_建模工作区/model/HUMAN_MODEL_IDEAS.md"]
+    outputs: ["03_建模工作区/decisions/route-tree.json"]
+    entrypoints: ["scripts.problem_analysis.check_analysis", "scripts.route_tree"]
+    preflight_skills: ["mm-problem-analysis", "mm-data-audit"]
+  problem_analysis:
+    priority: 76
+    stage: ["S2b"]
+    skill: "mm-problem-analysis"
+    agents: ["researcher"]
+    review_agents: ["critic"]
+    prerequisites: []
+    terms: ["problem decomposition", "problem analysis", "assumption ledger", "任务分解", "问题分析", "问题拆解", "假设账本", "量纲分析"]
+    inputs: ["01_题目与要求", "03_建模工作区/evidence/EVIDENCE_PASSPORT.yaml"]
+    outputs: ["03_建模工作区/problem/PROBLEM_ANALYSIS.json"]
+    entrypoints: ["scripts.problem_analysis.check_analysis"]
+  data_audit:
+    priority: 77
+    stage: ["S2c"]
+    skill: "mm-data-audit"
+    agents: ["researcher"]
+    review_agents: ["validator"]
+    prerequisites: []
+    terms: ["data audit", "data quality", "missing values", "label leakage", "数据审计", "数据质量", "缺失值", "数据泄漏", "预处理契约"]
+    inputs: ["03_建模工作区/data/raw", "03_建模工作区/problem/PROBLEM_ANALYSIS.json"]
+    outputs: ["03_建模工作区/data/audits/<dataset>.audit.json"]
+    entrypoints: ["scripts.data_audit.audit_file"]
+  mathematical_derivation:
+    priority: 107
+    stage: ["S5"]
+    skill: "mm-mathematical-derivation"
+    agents: ["deriver"]
+    review_agents: ["critic", "reviewer"]
+    writer_scopes: ["03_建模工作区/model/MODEL_DERIVATION.md"]
+    prerequisites: ["G2"]
+    terms: ["mathematical derivation", "derive equations", "assumption to equation", "dimensional consistency", "数学推导", "模型推导", "方程推导", "推导控制方程", "从假设推导", "假设到方程", "单位一致性", "边界条件推导", "符号推导"]
+    inputs: ["03_建模工作区/problem/PROBLEM_ANALYSIS.json", "03_建模工作区/data/audits", "03_建模工作区/decisions/route-tree.json", "03_建模工作区/evidence/EVIDENCE_PASSPORT.yaml"]
+    outputs: ["03_建模工作区/model/MODEL_DERIVATION.md"]
+  solver_strategy:
+    priority: 82
+    stage: ["S6b"]
+    skill: "mm-solver-strategy"
+    agents: ["researcher"]
+    review_agents: ["critic"]
+    prerequisites: ["G3"]
+    terms: ["solver strategy", "solver portfolio", "solver availability", "求解器策略", "求解策略", "求解器组合", "求解器探针"]
+    inputs: ["03_建模工作区/model/MODEL_SPEC.md"]
+    outputs: ["03_建模工作区/model/SOLVER_STRATEGY.md"]
+    entrypoints: ["scripts.solver_strategy.classify", "scripts.solver_strategy.portfolio_for", "scripts.solver_strategy.probe_available"]
+  model_spec:
+    priority: 75
+    stage: ["S5", "S6"]
+    skill: "mm-model-spec"
+    agents: ["critic"]
+    review_agents: ["reviewer"]
+    prerequisites: ["G2"]
+    terms: ["model spec", "check model_spec", "check model spec", "equation check", "constraint check", "模型规范", "检查 model_spec", "方程检查", "约束检查"]
+    inputs: ["03_建模工作区/model/MODEL_DERIVATION.md"]
+    preflight_skills: ["mm-mathematical-derivation"]
+  implementation:
+    priority: 80
+    stage: ["S7", "S8"]
+    skill: "mm-implementation"
+    agents: ["implementer"]
+    review_agents: ["reviewer"]
+    writer_scopes: ["03_建模工作区/src", "03_建模工作区/tests"]
+    prerequisites: ["G3"]
+    terms: ["implement approved model", "approved model code", "baseline code", "实现已批准模型", "按已批准的模型写代码", "按模型写代码", "基线实现"]
+    inputs: ["03_建模工作区/model/MODEL_SPEC.md", "03_建模工作区/model/SOLVER_STRATEGY.md", "03_建模工作区/data/audits"]
+    preflight_skills: ["mm-solver-strategy"]
+    preprocessors: ["mm-reproducibility"]
+    postprocessors: ["mm-reproducibility"]
+  optimization:
+    priority: 85
+    stage: ["S9"]
+    skill: "mm-experiment-optimization"
+    agents: ["optimizer"]
+    review_agents: ["reviewer", "validator", "replicator"]
+    writer_scopes: ["03_建模工作区/experiments", "03_建模工作区/results"]
+    prerequisites: ["G4"]
+    terms: ["optimization", "parameter tuning", "hyperparameter search", "solver comparison", "ablation", "performance benchmark", "优化", "参数调优", "超参数搜索", "求解器比较", "消融", "性能基准"]
+    preprocessors: ["mm-reproducibility"]
+    postprocessors: ["mm-reproducibility"]
+  validation_uq:
+    priority: 96
+    stage: ["S9b"]
+    skill: "mm-validation-uq"
+    agents: ["optimizer"]
+    review_agents: ["validator", "replicator"]
+    writer_scopes: ["03_建模工作区/experiments/validation", "03_建模工作区/runs"]
+    prerequisites: ["G4"]
+    terms: ["model validation", "sensitivity analysis", "robustness validation", "uncertainty quantification", "calibration", "stress test", "seed robustness", "generalization", "模型验证", "敏感性分析", "鲁棒性验证", "不确定性量化", "压力测试", "泛化验证", "种子稳健性"]
+    inputs: ["03_建模工作区/model/MODEL_SPEC.md", "03_建模工作区/runs", "03_建模工作区/data/audits"]
+    outputs: ["03_建模工作区/experiments/validation/VALIDATION_PLAN.md", "03_建模工作区/experiments/validation/UQ_REPORT.json", "03_建模工作区/runs/<run_id>/manifest.json"]
+    entrypoints: ["scripts.validation_uq"]
+    preprocessors: ["mm-reproducibility"]
+    postprocessors: ["mm-reproducibility"]
+  reproducibility:
+    priority: 97
+    stage: ["S7", "S8", "S9", "S10", "S11", "S12", "S13"]
+    skill: "mm-reproducibility"
+    agents: ["replicator"]
+    review_agents: []
+    prerequisites: []
+    terms: ["reproducibility", "replicate run", "run record", "reproduction command", "复现", "运行记录", "运行清单", "结果追溯", "最小复现命令"]
+    inputs: ["03_建模工作区/runs", "03_建模工作区/model/MODEL_SPEC.md"]
+    outputs: ["03_建模工作区/runs/<run_id>/manifest.json", "03_建模工作区/runs/registry.csv"]
+    entrypoints: ["scripts.run_record.create_run", "scripts.run_record.finalize_run"]
+  audit:
+    priority: 95
+    stage: ["S10", "S13"]
+    skill: "mm-result-audit"
+    agents: ["reviewer", "critic"]
+    review_agents: []
+    prerequisites: []
+    terms: ["audit result", "consistency", "result validity", "结果审计", "一致性", "结果有效性"]
+  visualization:
+    priority: 90
+    stage: ["S11"]
+    skill: "mm-scientific-visualization"
+    agents: ["visualizer"]
+    review_agents: ["reviewer"]
+    writer_scopes: ["03_建模工作区/figures"]
+    prerequisites: ["G5"]
+    terms: ["figure", "plot", "chart", "visual design", "画图", "图表", "可视化", "视觉设计"]
+    inputs: ["90_工具与配置/configs/VISUAL_STYLE_GUIDE.md", "03_建模工作区/runs", "03_建模工作区/figures/manifest.json"]
+    preprocessors: ["mm-reproducibility"]
+    postprocessors: ["mm-reproducibility"]
+  paper_writing:
+    priority: 99
+    stage: ["S12"]
+    skill: "mm-paper-writing"
+    agents: []
+    review_agents: ["reviewer", "validator", "replicator"]
+    writer_scopes: ["04_论文与提交/paper"]
+    prerequisites: ["G5"]
+    terms: ["write paper", "draft abstract", "polish manuscript", "paper writing", "写论文", "撰写论文", "撰写摘要", "写摘要", "润色论文", "论文写作"]
+    inputs: ["03_建模工作区/model/MODEL_SPEC.md", "03_建模工作区/runs", "03_建模工作区/figures/manifest.json", "04_论文与提交/paper/claim_registry.jsonl"]
+    outputs: ["04_论文与提交/paper", "04_论文与提交/paper/claim_registry.jsonl"]
+    entrypoints: ["scripts.claim_registry"]
+    postprocessors: ["mm-paper-defense", "mm-reproducibility"]
+  cumcm_paper_writing_review:
+    priority: 105
+    stage: ["S12", "S13"]
+    skill: "mm-cumcm-paper-writing-review"
+    agents: []
+    review_agents: ["reviewer", "validator", "replicator"]
+    writer_scopes: ["04_论文与提交/paper"]
+    prerequisites: ["G5"]
+    terms: ["CUMCM paper", "CUMCM abstract", "CUMCM review", "全国大学生数学建模竞赛论文", "国赛论文", "国赛摘要", "国赛论文评审", "评审国赛论文", "高教社杯论文"]
+    inputs: ["01_题目与要求", "03_建模工作区/model/MODEL_SPEC.md", "03_建模工作区/runs", "03_建模工作区/figures/manifest.json", "04_论文与提交/paper/claim_registry.jsonl"]
+    outputs: ["04_论文与提交/paper", "04_论文与提交/paper/claim_registry.jsonl"]
+    entrypoints: ["scripts.claim_registry"]
+    postprocessors: ["mm-paper-defense", "mm-reproducibility", "mm-compliance"]
+  paper_audit:
+    priority: 100
+    stage: ["S12", "S13", "S15"]
+    skill: "mm-paper-defense"
+    agents: ["reviewer"]
+    review_agents: ["critic"]
+    prerequisites: ["G5"]
+    terms: ["paper audit", "defense", "claim consistency", "paper figure citation consistency", "论文审查", "答辩", "论述一致性", "论文图表引用一致性"]
+  compliance:
+    priority: 110
+    stage: ["S14"]
+    skill: "mm-compliance"
+    agents: ["compliance"]
+    review_agents: []
+    prerequisites: ["G6"]
+    terms: ["submission", "anonymity", "control number", "ai disclosure", "提交", "匿名", "控制号", "AI 使用说明"]
+  provenance:
+    priority: 20
+    stage: ["cross-stage"]
+    skill: "mm-ai-provenance"
+    agents: []
+    review_agents: []
+    prerequisites: []
+    terms: ["ai provenance", "ai usage", "AI 使用记录", "AI 使用报告"]
+gate_intents:
+  G1: ["choose problem", "select problem", "选题", "选择赛题"]
+  G2: ["choose final model", "select method", "确定模型", "选择最终方法"]
+  G3: ["freeze model spec", "冻结模型", "冻结 MODEL_SPEC"]
+  G4: ["approve baseline", "批准基线", "确认 baseline"]
+  G5: ["freeze final results", "final method freeze", "冻结最终结果", "最终方法冻结"]
+  G6: ["approve final figures", "批准正式图", "确认最终图"]
+  G7: ["ready to submit", "approve submission", "允许提交", "确认提交"]

@@ -1,0 +1,7 @@
+interface:
+  display_name: "MM Orchestrator"
+  short_description: "Coordinate human-approved modeling stages"
+  default_prompt: "Use $mm-orchestrator to coordinate the next human-approved modeling stage."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,7 @@
+interface:
+  display_name: "MM Evidence Retrieval"
+  short_description: "Collect traceable modeling evidence"
+  default_prompt: "Use $mm-evidence-retrieval to collect sources for an explicitly scoped evidence request."
+
+policy:
+  allow_implicit_invocation: true

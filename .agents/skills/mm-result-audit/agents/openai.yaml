@@ -1,0 +1,7 @@
+interface:
+  display_name: "MM Result Audit"
+  short_description: "Audit results and reproducibility"
+  default_prompt: "Use $mm-result-audit to audit selected results against project truth sources."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,15 @@
+schema_version: "1.0"
+contest: null
+year: null
+control_number: null
+official_rules_locator: null
+anonymous_submission: true
+paper_pdf: null
+page_limit: null
+file_size_limit_mb: null
+ai_disclosure_required: null
+supporting_materials_required: null
+required_supporting_paths: []
+required_filename_pattern: null
+forbidden_identity_terms: []
+notes: "Populate only from official contest rules or an explicit human instruction. paper_pdf and supporting paths are relative to the workspace root, normally under 04_论文与提交/."

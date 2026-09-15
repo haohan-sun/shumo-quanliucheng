@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data-audit.schema.json",
+  "title": "Data Audit Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "dataset", "data_dictionary", "findings", "preprocessing_contract", "rejected_assumptions", "unresolved_risks", "verdict"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "dataset": {"type": "string", "minLength": 1},
+    "source_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "data_dictionary": {"type": "array", "minItems": 0, "items": {"type": "object", "additionalProperties": false, "required": ["column", "dtype", "role", "missing_rate"], "properties": {"column": {"type": "string"}, "dtype": {"type": "string"}, "role": {"enum": ["identifier", "feature", "target", "time", "location", "weight", "unknown"]}, "unit": {"type": "string"}, "missing_rate": {"type": "number", "minimum": 0, "maximum": 1}, "n_unique": {"type": "integer"}, "description": {"type": "string"}}}},
+    "findings": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["code", "severity", "column", "message"], "properties": {"code": {"enum": ["SCHEMA_MISMATCH", "DTYPE_MISMATCH", "MISSING_VALUES", "DUPLICATE_ROWS", "DUPLICATE_KEYS", "OUTLIER", "UNIT_SUSPECT", "ENCODING_ISSUE", "TEMPORAL_ORDER", "GEO_INCONSISTENCY", "SAMPLING_BIAS", "LEAKAGE_RISK", "LABEL_LEAKAGE", "IMPOSSIBLE_VALUE", "DISTRIBUTION_SHIFT", "SAMPLE_SUFFICIENCY"]}, "severity": {"enum": ["info", "warning", "blocking"]}, "column": {"type": "string"}, "message": {"type": "string"}, "n_affected": {"type": "integer"}, "example_rows": {"type": "array", "items": {"type": "integer"}}}}},
+    "preprocessing_contract": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["step", "justification"], "properties": {"step": {"type": "string"}, "justification": {"type": "string"}, "reversible": {"type": "boolean"}, "affects_target": {"type": "boolean"}}}},
+    "rejected_assumptions": {"type": "array", "items": {"type": "string"}},
+    "unresolved_risks": {"type": "array", "items": {"type": "string"}},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "verdict": {"enum": ["usable", "usable_with_fixes", "blocked"]}
+  }
+}

@@ -1,0 +1,7 @@
+interface:
+  display_name: "MM Scientific Visualization"
+  short_description: "Produce traceable scientific figures"
+  default_prompt: "Use $mm-scientific-visualization to plan a figure from real project data or results."
+
+policy:
+  allow_implicit_invocation: true

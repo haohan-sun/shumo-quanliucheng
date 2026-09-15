@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "references.schema.json",
+  "title": "Citation Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "references"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "schema_version": {"type": "string"},
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["reference_id", "title", "authors", "year", "source", "doi", "url", "verification_status", "verified_at", "used_by", "notes"],
+        "properties": {
+          "reference_id": {"type": "string", "minLength": 1},
+          "title": {"type": "string", "minLength": 1},
+          "authors": {"type": "array", "items": {"type": "string"}},
+          "year": {"type": ["integer", "null"]},
+          "source": {"type": ["string", "null"]},
+          "doi": {"type": ["string", "null"]},
+          "url": {"type": ["string", "null"]},
+          "verification_status": {"enum": ["unverified", "partially_verified", "verified", "rejected"]},
+          "verified_at": {"type": ["string", "null"], "format": "date-time"},
+          "used_by": {"type": "array", "items": {"type": "string"}},
+          "notes": {"type": "string"}
+        }
+      }
+    }
+  }
+}

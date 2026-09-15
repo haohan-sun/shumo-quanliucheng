@@ -1,0 +1,70 @@
+{
+  "$schema": "90_工具与配置/schemas/run-manifest.schema.json",
+  "project_id": "new-modeling-project",
+  "contest": "unassigned",
+  "status": "workflow_ready",
+  "created_at": "2026-09-05T00:00:00+08:00",
+  "input_hashes": {},
+  "environment": {
+    "report": "90_工具与配置/reports/ENVIRONMENT_REPORT.md",
+    "lock_file": "uv.lock"
+  },
+  "orchestration": {
+    "mode": "AUTO-ORCHESTRATED",
+    "routing_config": "90_工具与配置/configs/auto-routing.yaml",
+    "default_router": "mm-orchestrator",
+    "last_state_check": "2026-09-05T13:51:23.471356+00:00",
+    "last_validation": null,
+    "last_validation_ok": null,
+    "last_provenance_check": null
+  },
+  "stages": [
+    {
+      "name": "bootstrap",
+      "status": "complete",
+      "completed_at": "2026-09-05T00:00:00+08:00"
+    },
+    {
+      "name": "environment_validation",
+      "status": "complete",
+      "completed_at": "2026-09-05T00:00:00+08:00"
+    },
+    {
+      "name": "G1 problem selection",
+      "type": "gate",
+      "status": "pending"
+    },
+    {
+      "name": "G2 model/method selection",
+      "type": "gate",
+      "status": "pending"
+    },
+    {
+      "name": "G3 MODEL_SPEC freeze",
+      "type": "gate",
+      "status": "pending"
+    },
+    {
+      "name": "G4 baseline approval",
+      "type": "gate",
+      "status": "pending"
+    },
+    {
+      "name": "G5 final method/results freeze",
+      "type": "gate",
+      "status": "pending"
+    },
+    {
+      "name": "G6 final figure approval",
+      "type": "gate",
+      "status": "pending"
+    },
+    {
+      "name": "G7 ready-to-submit",
+      "type": "gate",
+      "status": "pending"
+    }
+  ],
+  "approved_artifacts": [],
+  "stale_artifacts": []
+}

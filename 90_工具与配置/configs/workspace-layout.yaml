@@ -1,0 +1,15 @@
+schema_version: "1.0"
+workspace_root: "."
+tool_root: "90_工具与配置"
+work_root: "03_建模工作区"
+paper_root: "04_论文与提交"
+sources:
+  problem_roots:
+    - "01_题目与要求"
+  literature_roots:
+    - "02_参考文献"
+  requirement_files: []
+ignore_name_globs:
+  - "~$*"
+  - ".DS_Store"
+notes: "五区布局；最终代码与论文必须和工具配置物理分离。"

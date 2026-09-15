@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "experiment-record.schema.json",
+  "title": "Experiment Registry Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["experiment_id", "timestamp", "commit", "input_hash", "model_hash", "config_hash", "method", "solver", "parameters", "seed", "environment", "software_versions", "metrics", "objective", "constraint_violation", "runtime", "memory", "status", "artifact_paths", "notes"],
+  "properties": {
+    "experiment_id": {"type": "string"},
+    "timestamp": {"type": "string"},
+    "commit": {"type": "string"},
+    "input_hash": {"type": "string"},
+    "model_hash": {"type": "string"},
+    "config_hash": {"type": "string"},
+    "method": {"type": "string"},
+    "solver": {"type": "string"},
+    "parameters": {"type": "string"},
+    "seed": {"type": "string"},
+    "environment": {"type": "string"},
+    "software_versions": {"type": "string"},
+    "metrics": {"type": "string"},
+    "objective": {"type": "string"},
+    "constraint_violation": {"type": "string"},
+    "runtime": {"type": "string"},
+    "memory": {"type": "string"},
+    "status": {"type": "string"},
+    "artifact_paths": {"type": "string"},
+    "notes": {"type": "string"}
+  }
+}

@@ -1,0 +1,7 @@
+interface:
+  display_name: "MM Route Tournament"
+  short_description: "Budgeted route tree and beam comparison before G2"
+  default_prompt: "Use $mm-route-tournament to compare human-nominated routes with bounded empirical quick-tests, read-only researcher/critic/judge evidence and a persisted route tree; stop at human G2."
+
+policy:
+  allow_implicit_invocation: true

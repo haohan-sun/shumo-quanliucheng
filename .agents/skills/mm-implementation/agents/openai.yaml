@@ -1,0 +1,7 @@
+interface:
+  display_name: "MM Implementation"
+  short_description: "Implement an approved mathematical model"
+  default_prompt: "Use $mm-implementation to implement the approved MODEL_SPEC without changing its mathematics."
+
+policy:
+  allow_implicit_invocation: true

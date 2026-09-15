@@ -1,0 +1,7 @@
+interface:
+  display_name: "MM Preflight"
+  short_description: "Check inputs, tools, and project readiness"
+  default_prompt: "Use $mm-preflight to inspect project readiness without solving the problem."
+
+policy:
+  allow_implicit_invocation: true

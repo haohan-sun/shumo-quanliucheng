@@ -1,0 +1,7 @@
+interface:
+  display_name: "Context Optimization"
+  short_description: "Optimize context budgets and token efficiency"
+  default_prompt: "Use $context-optimization to improve context efficiency without reducing answer quality."
+
+policy:
+  allow_implicit_invocation: true

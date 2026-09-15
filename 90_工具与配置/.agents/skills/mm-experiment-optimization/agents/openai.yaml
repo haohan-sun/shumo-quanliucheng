@@ -1,0 +1,7 @@
+interface:
+  display_name: "MM Experiment Optimization"
+  short_description: "Run reproducible approved-model experiments"
+  default_prompt: "Use $mm-experiment-optimization to optimize an approved implementation under recorded experiments."
+
+policy:
+  allow_implicit_invocation: true

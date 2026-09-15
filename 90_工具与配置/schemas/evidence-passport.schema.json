@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "evidence-passport.schema.json",
+  "title": "Evidence Passport",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "records"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["evidence_id", "source_type", "locator", "retrieved_at", "verification_status", "used_by", "notes"],
+        "properties": {
+          "evidence_id": {"type": "string", "minLength": 1},
+          "source_type": {"enum": ["problem_statement", "official_attachment", "external_dataset", "literature", "web_source", "human_assumption", "estimated_parameter", "ai_suggestion", "experimental_result"]},
+          "locator": {"type": "string"},
+          "retrieved_at": {"type": ["string", "null"], "format": "date-time"},
+          "verification_status": {"enum": ["unverified", "partially_verified", "verified", "rejected"]},
+          "used_by": {"type": "array", "items": {"type": "string"}},
+          "notes": {"type": "string"}
+        }
+      }
+    }
+  }
+}

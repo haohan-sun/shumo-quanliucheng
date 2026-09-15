@@ -1,0 +1,7 @@
+interface:
+  display_name: "MM Model Spec"
+  short_description: "Maintain the human-approved model contract"
+  default_prompt: "Use $mm-model-spec to draft or check a human-approved model specification."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,71 @@
+{
+  "checked_at": "2026-09-05T13:51:23.471356+00:00",
+  "status": {
+    "project_id": "new-modeling-project",
+    "contest": "unassigned",
+    "status": "workflow_ready",
+    "stages": [
+      {
+        "name": "bootstrap",
+        "status": "complete",
+        "completed_at": "2026-09-05T00:00:00+08:00"
+      },
+      {
+        "name": "environment_validation",
+        "status": "complete",
+        "completed_at": "2026-09-05T00:00:00+08:00"
+      },
+      {
+        "name": "G1 problem selection",
+        "type": "gate",
+        "status": "pending"
+      },
+      {
+        "name": "G2 model/method selection",
+        "type": "gate",
+        "status": "pending"
+      },
+      {
+        "name": "G3 MODEL_SPEC freeze",
+        "type": "gate",
+        "status": "pending"
+      },
+      {
+        "name": "G4 baseline approval",
+        "type": "gate",
+        "status": "pending"
+      },
+      {
+        "name": "G5 final method/results freeze",
+        "type": "gate",
+        "status": "pending"
+      },
+      {
+        "name": "G6 final figure approval",
+        "type": "gate",
+        "status": "pending"
+      },
+      {
+        "name": "G7 ready-to-submit",
+        "type": "gate",
+        "status": "pending"
+      }
+    ],
+    "model_status": "UNINITIALIZED",
+    "input_files": 0,
+    "literature_files": 1,
+    "requirement_files": 0,
+    "evidence_records": 0,
+    "experiments": 0,
+    "formal_results": 0,
+    "formal_figures": 0,
+    "approved_artifacts": [],
+    "stale_artifacts": []
+  },
+  "checks": {
+    "structure_ok": true,
+    "contracts_ok": true,
+    "errors": [],
+    "invalidated_passes": []
+  }
+}

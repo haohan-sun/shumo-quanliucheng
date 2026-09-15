@@ -1,0 +1,6 @@
+interface:
+  display_name: "MM Paper Writing"
+  short_description: "Write paper prose backed by registered verified runs"
+  default_prompt: "Use $mm-paper-writing to write requested paper sections from verified claims and run records."
+policy:
+  allow_implicit_invocation: true

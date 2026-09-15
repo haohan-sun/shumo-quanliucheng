@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "verify.schema.json",
+  "title": "Independent Final Verification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "status", "verified_at", "checks", "notes"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "schema_version": {"type": "string"},
+    "status": {"enum": ["pending", "verified", "rejected"]},
+    "verified_at": {"type": ["string", "null"], "format": "date-time"},
+    "independent_reviewer": {"type": "string", "minLength": 1},
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["check_id", "status", "evidence", "notes"],
+        "properties": {
+          "check_id": {"type": "string", "minLength": 1},
+          "status": {"enum": ["pass", "fail", "not_applicable"]},
+          "evidence": {"type": "array", "items": {"type": "string"}},
+          "notes": {"type": "string"}
+        }
+      }
+    },
+    "notes": {"type": "string"}
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "checked_at": "2026-08-16T13:27:11.402467+00:00",
+  "mode": "bootstrap",
+  "findings": [
+    {
+      "level": "WARNING",
+      "code": "CONTEST_UNASSIGNED",
+      "message": "Contest identity and year have not been configured.",
+      "evidence": "configs/contest.yaml"
+    },
+    {
+      "level": "WARNING",
+      "code": "RULES_MISSING",
+      "message": "No official contest-rule locator has been recorded; rule-specific checks cannot be claimed.",
+      "evidence": "configs/contest.yaml"
+    }
+  ]
+}

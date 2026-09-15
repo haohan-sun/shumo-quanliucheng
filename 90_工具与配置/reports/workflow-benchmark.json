@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "iterations": 100,
+  "routing_operations": 700,
+  "elapsed_seconds": 9.479638,
+  "routing_ops_per_second": 73.84,
+  "route_mismatches": [],
+  "read_only_roles": {
+    "validator": true,
+    "replicator": true,
+    "judge": true
+  },
+  "package_guard": true
+}

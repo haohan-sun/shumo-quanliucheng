@@ -1,0 +1,7 @@
+interface:
+  display_name: "MM Literature Integrity"
+  short_description: "Verify literature and citation integrity"
+  default_prompt: "Use $mm-literature-integrity to verify explicitly scoped literature and citations."
+
+policy:
+  allow_implicit_invocation: true

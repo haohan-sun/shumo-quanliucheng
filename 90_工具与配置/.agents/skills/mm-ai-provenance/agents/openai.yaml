@@ -1,0 +1,7 @@
+interface:
+  display_name: "MM AI Provenance"
+  short_description: "Record and disclose material AI assistance"
+  default_prompt: "Use $mm-ai-provenance to record or compile truthful AI-use provenance."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,5 @@
+{
+  "$schema": "../schemas/figure-manifest.schema.json",
+  "schema_version": "1.0",
+  "figures": []
+}

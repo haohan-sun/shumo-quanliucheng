@@ -1,0 +1,7 @@
+interface:
+  display_name: "MM Compliance"
+  short_description: "Check submission rules and blockers"
+  default_prompt: "Use $mm-compliance to run a rule-backed submission check."
+
+policy:
+  allow_implicit_invocation: true

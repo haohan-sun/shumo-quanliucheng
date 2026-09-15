@@ -1,0 +1,7 @@
+interface:
+  display_name: "MM Paper Defense"
+  short_description: "Audit paper claims and defense readiness"
+  default_prompt: "Use $mm-paper-defense to check a draft against verified artifacts and defense requirements."
+
+policy:
+  allow_implicit_invocation: true

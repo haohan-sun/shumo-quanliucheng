@@ -1,0 +1,83 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "math-modeling-research-engineering"
+version = "0.1.0"
+description = "Human-in-the-loop infrastructure for reproducible mathematical modeling competitions."
+requires-python = ">=3.11,<3.14"
+dependencies = [
+  "numpy>=2.0",
+  "pandas>=2.2",
+  "scipy>=1.14",
+  "sympy>=1.13",
+  "scikit-learn>=1.5",
+  "statsmodels>=0.14",
+  "matplotlib>=3.9",
+  "plotly>=5.24",
+  "kaleido>=0.2",
+  "openpyxl>=3.1",
+  "pyarrow>=17",
+  "networkx>=3.3",
+  "pydantic>=2.9",
+  "PyYAML>=6.0",
+  "jsonschema>=4.23",
+  "pandera>=0.20",
+  "rich>=13.9",
+  "tqdm>=4.66",
+  "joblib>=1.4",
+  "jupyterlab>=4.2",
+  "ipykernel>=6.29",
+  "pytest>=8.3",
+  "pytest-cov>=5.0",
+  "ruff>=0.7",
+]
+
+[project.optional-dependencies]
+optimization = [
+  "pymoo>=0.6",
+  "optuna>=4.0",
+  "cvxpy>=1.6",
+  "pulp>=2.9",
+  "ortools>=9.11",
+  "highspy>=1.8",
+  "deap>=1.4",
+  "SALib>=1.5",
+]
+geospatial = [
+  "geopandas>=1.0",
+  "shapely>=2.0",
+  "pyproj>=3.7",
+  "contextily>=1.6",
+  "folium>=0.18",
+]
+visualization = [
+  "SciencePlots>=2.1",
+  "colorcet>=3.1",
+  "adjustText>=1.2",
+  "altair>=5.4",
+]
+document = [
+  "pypdf>=5.0",
+  "PyMuPDF>=1.24",
+  "pdfplumber>=0.11",
+  "python-docx>=1.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["03_建模工作区/src/mm_competition"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["03_建模工作区/tests"]
+pythonpath = ["90_工具与配置"]
+cache_dir = "90_工具与配置/.cache/pytest"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+cache-dir = "90_工具与配置/.cache/ruff"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

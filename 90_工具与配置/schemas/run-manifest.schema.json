@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "run-manifest.schema.json",
+  "title": "Run Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["project_id", "contest", "status", "created_at", "input_hashes", "environment", "orchestration", "stages", "approved_artifacts", "stale_artifacts"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "project_id": {"type": "string", "minLength": 1},
+    "contest": {"type": "string", "minLength": 1},
+    "status": {"type": "string", "minLength": 1},
+    "created_at": {"type": "string", "format": "date-time"},
+    "input_hashes": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["report", "lock_file"],
+      "properties": {
+        "report": {"type": "string", "minLength": 1},
+        "lock_file": {"type": "string", "minLength": 1}
+      }
+    },
+    "orchestration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "routing_config", "default_router", "last_state_check", "last_validation", "last_validation_ok", "last_provenance_check"],
+      "properties": {
+        "mode": {"const": "AUTO-ORCHESTRATED"},
+        "routing_config": {"type": "string", "minLength": 1},
+        "default_router": {"const": "mm-orchestrator"},
+        "last_state_check": {"type": ["string", "null"], "format": "date-time"},
+        "last_validation": {"type": ["string", "null"], "format": "date-time"},
+        "last_validation_ok": {"type": ["boolean", "null"]},
+        "last_provenance_check": {"type": ["string", "null"], "format": "date-time"}
+      }
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "status"],
+        "properties": {"name": {"type": "string"}, "status": {"type": "string"}},
+        "additionalProperties": true
+      }
+    },
+    "approved_artifacts": {"type": "array", "items": {"type": "string"}},
+    "stale_artifacts": {"type": "array", "items": {"type": "string"}}
+  }
+}

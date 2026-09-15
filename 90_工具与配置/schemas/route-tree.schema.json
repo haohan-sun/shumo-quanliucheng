@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "route-tree.schema.json",
+  "title": "Route Tree (beam/tree search over modeling routes)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "problem_id", "budget", "used", "nodes", "promoted_route_id"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "problem_id": {"type": "string", "minLength": 1},
+    "budget": {"type": "object", "additionalProperties": false, "required": ["max_nodes", "max_depth", "max_quick_tests", "beam_width"], "properties": {"max_nodes": {"type": "integer", "minimum": 1}, "max_depth": {"type": "integer", "minimum": 1}, "max_quick_tests": {"type": "integer", "minimum": 0}, "beam_width": {"type": "integer", "minimum": 1}}},
+    "used": {"type": "object", "additionalProperties": false, "required": ["nodes", "quick_tests"], "properties": {"nodes": {"type": "integer", "minimum": 0}, "quick_tests": {"type": "integer", "minimum": 0}}},
+    "nodes": {"type": "array", "items": {"$ref": "#/$defs/node"}},
+    "promoted_route_id": {"type": ["string", "null"]}
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["route_id", "parent", "depth", "status", "hypothesis", "model_family", "solver", "expected_score", "quick_test_score", "risk", "experiment_cost", "children"],
+      "properties": {
+        "route_id": {"type": "string", "minLength": 1},
+        "parent": {"type": ["string", "null"]},
+        "depth": {"type": "integer", "minimum": 0},
+        "status": {"enum": ["generated", "reviewed", "quick_tested", "pruned", "promoted", "revised"]},
+        "hypothesis": {"type": "string", "minLength": 1},
+        "model_family": {"type": "string"},
+        "preprocessing": {"type": ["string", "null"]},
+        "objective": {"type": ["string", "null"]},
+        "constraints": {"type": ["string", "null"]},
+        "solver": {"type": "string"},
+        "complexity": {"type": ["string", "null"]},
+        "evidence": {"type": "array", "items": {"type": "string"}},
+        "novelty": {"enum": ["none", "incremental", "substantive"], "default": "incremental"},
+        "expected_score": {"type": "number", "minimum": 0, "maximum": 1},
+        "quick_test_score": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "risk": {"type": "string"},
+        "failure_condition": {"type": ["string", "null"]},
+        "experiment_cost": {"type": "number", "minimum": 0},
+        "prune_reason": {"type": ["string", "null"]},
+        "children": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

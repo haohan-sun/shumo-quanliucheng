@@ -1,0 +1,4 @@
+interface:
+  display_name: "CUMCM 论文写作与评审"
+  short_description: "CUMCM论文写作、摘要优化、证据化评审与范文对标专用流程"
+  default_prompt: "请按当届官方规则和论文证据，完成这篇 CUMCM 论文的写作、修改或评审。"

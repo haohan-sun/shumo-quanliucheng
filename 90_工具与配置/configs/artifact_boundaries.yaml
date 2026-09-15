@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "notes": "Single source of truth for what may never enter a submission package or be treated as a deliverable. build_submission consults this file; G7 checks FAIL on any violation.",
+  "exclude_from_package": [
+    {"pattern": "**/_locked_cache_*/**", "reason": "locked caches at any depth are never deliverables"},
+    {"pattern": "90_工具与配置/_locked_cache_from_03/**", "reason": "quarantined cache copy of 03 work area (source-only)"},
+    {"pattern": "90_工具与配置/_locked_cache_from_tools/**", "reason": "quarantined tool cache (pytest etc.)"},
+    {"pattern": "90_工具与配置/**/_locked_cache_*/**", "reason": "any locked/quarantined cache"},
+    {"pattern": "90_工具与配置/backups/**", "reason": "internal backup snapshots"},
+    {"pattern": "90_工具与配置/state/**", "reason": "runtime state: error registry, gate snapshots, recovery points"},
+    {"pattern": "90_工具与配置/evals/**", "reason": "system benchmark harness, not a deliverable"},
+    {"pattern": "90_工具与配置/reports/**", "reason": "tool-generated check reports"},
+    {"pattern": "90_工具与配置/.cache/**", "reason": "package manager cache"},
+    {"pattern": "**/__pycache__/**", "reason": "bytecode cache"},
+    {"pattern": "**/~$*", "reason": "Office lock files"},
+    {"pattern": "**/.DS_Store", "reason": "OS metadata"},
+    {"pattern": ".git/**", "reason": "version control internals"},
+    {"pattern": "docs/**", "reason": "internal engineering docs, not competition material"},
+    {"pattern": "03_建模工作区/runs/*/stdout.log", "reason": "raw run logs stay in run dir unless explicitly promoted"},
+    {"pattern": "03_建模工作区/runs/*/stderr.log", "reason": "raw run logs stay in run dir unless explicitly promoted"}
+  ],
+  "recovery_note": "run-manifest.json stages[] is the authoritative Gate state; 90_工具与配置/state/ holds derived snapshots for invalidation and recovery only."
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "数学建模推导"
+  short_description: "从假设与问题事实推导可审计的方程、目标、约束与边界条件"
+  default_prompt: "请把已选建模路线推导成可核验的方程、目标、约束、边界条件与检验清单。"

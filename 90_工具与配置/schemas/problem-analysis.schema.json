@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "problem-analysis.schema.json",
+  "title": "Problem Analysis Artifact",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "problem_id", "subproblems", "task_types", "variables", "objectives", "constraints", "assumption_ledger", "data_requirements", "output_requirements", "evaluation_metrics", "identifiability_risks", "hidden_requirements", "terminology"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "problem_id": {"type": "string", "minLength": 1},
+    "subproblems": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["id", "statement", "depends_on"], "properties": {"id": {"type": "string"}, "statement": {"type": "string", "minLength": 1}, "depends_on": {"type": "array", "items": {"type": "string"}}}}},
+    "task_types": {"type": "array", "minItems": 1, "items": {"enum": ["decision", "prediction", "optimization", "simulation", "inference", "evaluation", "allocation", "scheduling", "network", "control"]}},
+    "variables": {"type": "object", "additionalProperties": false, "required": ["decision", "state", "exogenous"], "properties": {"decision": {"type": "array", "items": {"$ref": "#/$defs/variable"}}, "state": {"type": "array", "items": {"$ref": "#/$defs/variable"}}, "exogenous": {"type": "array", "items": {"$ref": "#/$defs/variable"}}}},
+    "objectives": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["id", "statement", "sense"], "properties": {"id": {"type": "string"}, "statement": {"type": "string"}, "sense": {"enum": ["minimize", "maximize"]}, "subproblem_id": {"type": "string"}}}},
+    "constraints": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["id", "statement", "source"], "properties": {"id": {"type": "string"}, "statement": {"type": "string"}, "source": {"enum": ["problem", "derived", "assumption"]}, "subproblem_id": {"type": "string"}}}},
+    "boundary_conditions": {"type": "array", "items": {"type": "string"}},
+    "time_scales": {"type": "array", "items": {"type": "string"}},
+    "space_scales": {"type": "array", "items": {"type": "string"}},
+    "units": {"type": "object", "additionalProperties": {"type": "string"}},
+    "data_requirements": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["name", "purpose"], "properties": {"name": {"type": "string"}, "purpose": {"type": "string"}, "available": {"type": "boolean"}, "locator": {"type": "string"}}}},
+    "output_requirements": {"type": "array", "items": {"type": "string"}},
+    "evaluation_metrics": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["id", "definition", "aligns_with"], "properties": {"id": {"type": "string"}, "definition": {"type": "string"}, "aligns_with": {"type": "string"}}}},
+    "assumption_ledger": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["id", "statement", "basis", "strength"], "properties": {"id": {"type": "string"}, "statement": {"type": "string"}, "basis": {"type": "string"}, "strength": {"enum": ["weak", "moderate", "strong"]}}}},
+    "identifiability_risks": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["description", "severity"], "properties": {"description": {"type": "string"}, "severity": {"enum": ["low", "medium", "high"]}, "mitigation": {"type": "string"}}}},
+    "hidden_requirements": {"type": "array", "items": {"type": "string"}},
+    "terminology": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["term", "definition"], "properties": {"term": {"type": "string"}, "definition": {"type": "string"}}}}
+  },
+  "$defs": {"variable": {"type": "object", "additionalProperties": false, "required": ["name", "meaning", "unit"], "properties": {"name": {"type": "string"}, "meaning": {"type": "string"}, "unit": {"type": "string"}, "domain": {"type": "string"}}}}
+}
