@@ -7,3 +7,8 @@ __pycache__/
 90_工具与配置/_locked_cache_from_tools/
 90_工具与配置/reports/ENVIRONMENT_REPORT.md
 uv.lock.bak
+
+# Regenerable outputs of the toy demo (`run.ps1 demo` rebuilds them from source).
+examples/toy_demo/build/
+# `run.ps1 verify --write-report` output; the human-owned verify.json stays tracked.
+90_工具与配置/reports/verify-run.json

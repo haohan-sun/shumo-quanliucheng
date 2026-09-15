@@ -1,7 +1,7 @@
-from pathlib import Path
-import tomllib
 import json
 import re
+import tomllib
+from pathlib import Path
 
 
 def test_read_only_specialists():

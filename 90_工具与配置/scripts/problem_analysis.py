@@ -81,7 +81,7 @@ def check_analysis(artifact: dict[str, Any]) -> list[str]:
             errors.append(f"assumption {assumption.get('id')}: unknown strength")
     for risk in artifact["identifiability_risks"]:
         if risk.get("severity") not in {"low", "medium", "high"}:
-            errors.append(f"identifiability risk: unknown severity")
+            errors.append("identifiability risk: unknown severity")
 
     vars_ = artifact.get("variables", {})
     for role in ("decision", "state", "exogenous"):

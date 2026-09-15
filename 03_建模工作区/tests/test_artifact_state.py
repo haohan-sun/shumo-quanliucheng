@@ -1,7 +1,6 @@
 import json
 
 import pytest
-
 from scripts.artifact_state import (
     GATE_DEPENDENCIES,
     invalidate,

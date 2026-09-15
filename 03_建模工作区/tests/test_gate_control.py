@@ -5,7 +5,6 @@ import sys
 from pathlib import Path
 
 import pytest
-
 from scripts.gate_control import approve_gate, gate_status, revoke_gate
 from scripts.route_tree import add_route, new_tree, record_quick_test, record_review, save_tree
 

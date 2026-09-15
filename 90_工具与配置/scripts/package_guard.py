@@ -23,6 +23,10 @@ if __package__ in {None, ""}:
 from scripts._project import ROOT, load_yaml
 
 BOUNDARIES_PATH = ROOT / "90_工具与配置" / "configs" / "artifact_boundaries.yaml"
+# Directory names that only ever hold regenerable interpreter/test caches.  They
+# are skipped while walking a package tree; the explicit boundary rules still
+# reject them when they appear inside an actual archive namelist.
+PRUNED_DIRECTORY_NAMES = frozenset({"__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache"})
 
 
 def load_boundaries(path: Path = BOUNDARIES_PATH) -> dict[str, Any]:
@@ -55,6 +59,10 @@ def collect_paths(target: Path) -> list[str]:
         base = ROOT if target.resolve().is_relative_to(ROOT) else target.resolve()
         paths = []
         for directory, dirs, files in os.walk(target, followlinks=False):
+            # Regenerable interpreter caches are implementation noise, not
+            # deliverables: a normal test run creates them, so reporting them as
+            # boundary violations would make every packaged tree look broken.
+            dirs[:] = [name for name in dirs if name not in PRUNED_DIRECTORY_NAMES]
             for name in dirs + files:
                 item = Path(directory) / name
                 if item.is_symlink() or os.path.isjunction(item):

@@ -78,6 +78,31 @@ cache_dir = "90_工具与配置/.cache/pytest"
 line-length = 100
 target-version = "py311"
 cache-dir = "90_工具与配置/.cache/ruff"
+# Only this project's own code is linted. The mirrored discovery trees and the
+# vendored skill scripts are copies maintained elsewhere.
+extend-exclude = [".agents", ".codex"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# E501 (line length) is a pre-existing, repo-wide style backlog, not a
+# correctness rule: the workspace, the scripts and the test suite were written
+# above the 100-column limit. Reformatting them is explicitly out of scope for
+# this change, so the rule is ignored while F/I/UP/B -- the rules that catch real
+# bugs and instability -- stay enforced everywhere. `ruff check` therefore passes
+# on a clean clone, and the CI job runs exactly that command.
+"*.py" = ["E501"]
+# The remaining legacy exceptions, kept narrow and explicit rather than hiding
+# whole files. Each is a mechanical modernisation of working code.
+"90_工具与配置/scripts/artifact_state.py" = ["UP017"]
+"90_工具与配置/scripts/data_audit.py" = ["UP017"]
+"90_工具与配置/scripts/error_registry.py" = ["UP017"]
+"90_工具与配置/scripts/gate_control.py" = ["UP017"]
+"90_工具与配置/scripts/run_record.py" = ["UP017"]
+"90_工具与配置/scripts/validation_uq.py" = ["UP035", "UP034", "E731"]
+"90_工具与配置/scripts/package_guard.py" = ["UP035"]
+"90_工具与配置/scripts/claim_registry.py" = ["E741"]
+"90_工具与配置/evals/workflow_benchmark.py" = ["E402"]
+"03_建模工作区/tests/test_gate_control.py" = ["B017"]
+"03_建模工作区/tests/test_viz_templates.py" = ["E402"]

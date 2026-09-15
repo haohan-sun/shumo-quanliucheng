@@ -1,7 +1,6 @@
-import json
 
 from scripts.claim_registry import add_claim, check_registry
-from scripts.run_record import create_run, add_output, finalize_run
+from scripts.run_record import add_output, create_run, finalize_run
 
 
 def test_claim_to_run_to_artifact_chain(tmp_path):

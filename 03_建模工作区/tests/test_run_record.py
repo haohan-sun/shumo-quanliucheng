@@ -1,8 +1,6 @@
-import json
 
 import pytest
-
-from scripts.run_record import create_run, add_output, finalize_run, validate_run_record
+from scripts.run_record import add_output, create_run, finalize_run, validate_run_record
 
 
 def make_run(tmp_path):

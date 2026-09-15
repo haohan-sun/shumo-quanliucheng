@@ -6,8 +6,9 @@ description: "AUTO TRIGGER: after evidence retrieval establishes inputs and befo
 # MM Problem Analysis
 
 把赛题翻译成结构化的问题定义。产物是 `03_建模工作区/problem/PROBLEM_ANALYSIS.json`，
-必须通过 `90_工具与配置/scripts/problem_analysis.py --check`，后续 route tournament、
-model spec、data audit 全部以它为输入。
+必须通过
+`python 90_工具与配置/scripts/problem_analysis.py --check 03_建模工作区/problem/PROBLEM_ANALYSIS.json`
+（`--check` 需要一个路径参数），后续 route tournament、model spec、data audit 全部以它为输入。
 
 ## 流程
 
@@ -24,7 +25,9 @@ model spec、data audit 全部以它为输入。
 7. **假设账本**：每条假设记 basis 与 strength（weak/moderate/strong）；
    weak 假设必须出现在后续 sensitivity 计划里。
 8. **可识别性风险**：参数不可辨识、数据不足、目标冲突等，标 severity 与 mitigation。
-9. **校验**：运行 `problem_analysis.py --check`；PASS 后才能进入 route tournament。
+9. **校验**：运行
+   `python 90_工具与配置/scripts/problem_analysis.py --check 03_建模工作区/problem/PROBLEM_ANALYSIS.json`；
+   PASS 后才能进入 route tournament。
 
 ## 红线
 

@@ -1,149 +1,274 @@
 # 数模全流程
 
-面向各类数学建模竞赛与研究型项目的通用 Codex 工作区模板。它把材料、证据、问题
-分析、数学推导、模型规范、代码、实验、验证、图表、论文和提交检查放进同一条可追溯
-流程，同时保持每类成果的目录边界。
+**Reproducible AI-assisted mathematical modeling workspace.**
+面向数学建模竞赛与研究型项目的通用工作区：把材料、证据、推导、模型规范、代码、实验、
+验证、图表、论文和提交检查放进同一条可追溯的流程，并保持每类成果的目录边界。
 
-本公开版由 2026-09-05 的初始环境快照整理而成；未包含后续赛题、具体行业案例、竞赛
-数据、实验结果或论文成果，并已移除旧私有仓库信息和本机绝对路径。
+三条不可让步的原则：
 
-## 核心能力
+- **AI 协助执行，人做决定。** 题目、模型、最终结果和提交由人决定；G1–G7 人工 Gate
+  只能由人批准，任何 Agent、Skill、测试或 Hook 都不能代批。
+- **正式数字必须可追溯。** 论文里的每个数字都要能沿
+  `输入 → 代码 → 配置 → 运行记录 → 输出哈希 → 主张` 回溯。
+- **solver success ≠ 模型正确。** 推导、实现、验证分开审查，通过测试不等于结论成立。
 
-- 22 个项目 Skills：覆盖证据检索、文献核验、问题分析、数据审计、路线比较、数学
-  推导、MODEL_SPEC、求解策略、实现、优化、验证/UQ、复现、科学制图、论文和合规。
-- 11 个专职 Agents：研究、批判、推导、实现、优化、验证、复现、制图、审稿、裁定
-  与合规各有明确的读写边界。
-- 自动路由：`mm-orchestrator` 根据请求、项目状态和 Gate 选择一个主 Skill，并组织
-  必要的独立复核。
-- 证据链：重要数字可以追溯到输入、代码、配置、运行记录和输出哈希。
-- 通用论文流程与 CUMCM 专项写作/评审并存；专项规则始终服从当届官方文件。
+本公开版由 2026-09-05 的初始环境快照整理而成：不含赛题、行业案例、竞赛数据、实验结果
+或论文成果，也没有旧私有仓库信息和本机绝对路径。
 
-## 22 个 Skills 功能
+---
 
-| Skill | 功能 |
-| --- | --- |
-| `mm-orchestrator` | 读取项目状态，识别当前阶段，选择主 Skill、Agent 与复核链，并汇总结果。 |
-| `mm-preflight` | 盘点输入、环境、依赖、状态文件和阶段就绪度，发现缺件与陈旧状态。 |
-| `mm-evidence-retrieval` | 检索附件、公开数据、事实和参数依据，形成可追溯的 Evidence Passport。 |
-| `mm-literature-integrity` | 核验论文身份、DOI、出处、许可证及“来源是否真正支持主张”。 |
-| `mm-problem-analysis` | 拆分子问题、任务类型、变量、目标、约束、单位、假设和验收条件。 |
-| `mm-data-audit` | 检查字段、类型、缺失、重复、异常、单位、泄漏、时空顺序及预处理边界。 |
-| `mm-route-tournament` | 在已提出的候选建模路线间按统一指标比较，列出风险、失败条件与快速试验。 |
-| `mm-mathematical-derivation` | 从已选路线推导符号、方程、目标、约束、初边值与适用条件，并做量纲和极限检查。 |
-| `mm-model-spec` | 把数学定义固化为实现可读的权威 `MODEL_SPEC`，管理规格变更。 |
-| `mm-solver-strategy` | 根据问题结构安排解析解、LP/QP、凸优化、MILP/MINLP、启发式等求解组合。 |
-| `mm-implementation` | 按冻结规格建立首个可测试基线，并维护方程到代码的映射。 |
-| `mm-experiment-optimization` | 做参数搜索、求解器比较、消融、性能基准、灵敏度与稳健性实验。 |
-| `mm-validation-uq` | 检验泛化、校准、残差、压力情景、敏感性和不确定性量化。 |
-| `mm-reproducibility` | 记录 run ID、Git 状态、输入/输出哈希、配置、随机种子、依赖与复现命令。 |
-| `mm-result-audit` | 独立审计结果一致性、约束满足、潜在 bug、来源链和复现证据。 |
-| `mm-scientific-visualization` | 以科学主张为起点建立 Figure Contract，生成可复现图、矢量文件和 manifest。 |
-| `mm-paper-writing` | 只依据已注册证据起草、改写和润色摘要、模型、结果、讨论等论文部分。 |
-| `mm-cumcm-paper-writing-review` | 提供 CUMCM 专项摘要、结构、自查、证据化评审及 PDF 文本提取流程。 |
-| `mm-paper-defense` | 核对论文、模型、结果、图表和代码的一致性，并生成答辩问题与局限清单。 |
-| `mm-compliance` | 检查匿名、控制号、官方格式、文件限制、支撑材料、AI 声明和提交就绪度。 |
-| `mm-ai-provenance` | 以精简类别记录对成果有实质影响的 AI 使用，不暴露隐藏推理过程。 |
-| `context-optimization` | 控制上下文预算、检索范围和长输出，降低重复读取与无效 token 消耗。 |
+## 3 分钟 Quick Start
 
-## 11 个 Agents 功能
+前置条件：**Python 3.11–3.13**（`pyproject.toml` 的 `requires-python` 是唯一权威）和
+**git**。`uv` 可选；没有 `uv` 时会自动用 `pip`。
 
-| Agent | 权限与职责 |
-| --- | --- |
-| `researcher` | 只读；负责附件、数据、文献、参数和方法来源调查。 |
-| `critic` | 只读；对路线、假设、可识别性、数据充分性和失败条件做对抗性检查。 |
-| `judge` | 只读；在候选路线及既定评分标准内独立排序，不自行发明路线。 |
-| `deriver` | 写入模型推导；把已选路线展开为可审计数学推导，不改实现和冻结规格。 |
-| `implementer` | 写入首个基线、测试和方程—代码映射；同一工件保持唯一写者。 |
-| `optimizer` | 写入优化、实验、消融、基准和 UQ 运行；不为追指标擅改数学问题。 |
-| `validator` | 只读；挑战泛化、稳健性、泄漏、过拟合、校准和统计有效性。 |
-| `replicator` | 只读；依照清单、哈希和容差独立判定 `REPLICATED/MISMATCH/NOT_RUNNABLE`。 |
-| `visualizer` | 写入正式图、渲染代码、Figure Contract 和图表 manifest。 |
-| `reviewer` | 只读；独立复核代码、实验、结果、图表、论文、引用和可复现性。 |
-| `compliance` | 只读；按官方规则做匿名、格式、文件、披露和支撑材料预检。 |
+```powershell
+# Windows (PowerShell)
+git clone https://github.com/haohan-sun/shumo-quanliucheng.git
+cd shumo-quanliucheng
+.\setup.ps1
+.\run.ps1 doctor
+.\run.ps1 validate
+```
 
-## 配置、模板与脚本
+```bash
+# Linux / macOS
+git clone https://github.com/haohan-sun/shumo-quanliucheng.git
+cd shumo-quanliucheng
+./setup.sh
+./run.sh doctor
+./run.sh validate
+```
 
-- `90_工具与配置/configs/auto-routing.yaml` 是自然语言意图到 Skill/Agent 的权威路由表。
-- `run.ps1 status|validate|verify|package` 统一执行状态、契约校验、结构检查与提交打包。
-- `schemas/` 定义项目状态、运行记录、模型规格和图表清单等机器可校验结构。
-- `templates/` 提供决策、模型、实验、Figure Contract、论文与合规清单模板。
-- `evals/` 与 `tests/` 检查路由、角色边界、工件状态、打包安全和绘图模板。
-- `.agents/`、`.codex/` 是客户端发现入口；权威镜像保存在 `90_工具与配置/`。
+`setup` 会自动寻找满足 `requires-python` 的解释器、建立 `.venv`、安装依赖并跑一次
+`doctor`。重复运行是幂等的；解释器换了用 `.\setup.ps1 -ForceRecreate` 重建。
 
-## 标准流程
+不想装完整依赖、只想先看结构：
+
+```powershell
+.\setup.ps1 -DryRun          # 只打印计划，不做任何修改
+.\setup.ps1 -Ci -NoDoctor    # 只装必需依赖，跳过 doctor
+```
+
+## 最小 Demo：一个数字如何走完全程
+
+`examples/toy_demo/` 是一个完全合成、无版权与隐私风险的玩具算例
+（24 个点的指数衰减 + 未知偏置），用来在动真格之前把整条链路走一遍：
+
+```powershell
+.\run.ps1 demo
+```
+
+它按顺序产出：题目 → 数学推导 → 冻结 MODEL_SPEC → Gate 示例（**故意保持 pending**）→
+tracked run（git 状态、输入/代码哈希、种子、依赖、输出、指标）→ 图形 manifest →
+claim registry → 只引用已登记数字的论文片段。全部产物都在
+`examples/toy_demo/build/` 下，不会碰 `03_建模工作区/`、`04_论文与提交/` 或
+`run-manifest.json`。
+
+重跑不必要，只想复核已有产物是否仍与运行记录一致：
+
+```powershell
+.\run.ps1 demo --check-only
+```
+
+## 核心工作流
 
 ```text
 题目与附件
-→ 证据检索 / 文献核验
-→ 问题分析 / 数据审计
-→ 候选路线比较
-→ 数学推导（符号、单位、方程、目标、约束、初边值、极限检查）
-→ MODEL_SPEC
-→ 求解策略 / 基线实现
-→ 优化实验
-→ 独立验证与不确定性量化
-→ 科学制图
-→ 论文写作与交叉审查
-→ 匿名、AI 声明和提交检查
+→ 证据检索 / 文献核验        mm-evidence-retrieval / mm-literature-integrity
+→ 问题分析 / 数据审计        mm-problem-analysis / mm-data-audit
+→ 候选路线比较（停 G2）      mm-route-tournament
+→ 数学推导                   mm-mathematical-derivation
+→ MODEL_SPEC（停 G3）        mm-model-spec
+→ 求解策略 / 基线实现        mm-solver-strategy / mm-implementation
+→ 优化实验                   mm-experiment-optimization
+→ 独立验证与不确定性量化      mm-validation-uq
+→ 科学制图                   mm-scientific-visualization
+→ 论文写作与交叉审查          mm-paper-writing / mm-paper-defense
+→ 匿名、AI 声明与提交检查      mm-compliance（停 G7）
 ```
 
-工作区保留 G1–G7 人工 Gate。Agent、Skill、测试与 Hook 可以报告准备度，但不能替参赛
-者批准选题、最终模型、冻结规格、基线、最终结果、正式图或提交。
+`AGENTS.md` 与 `90_工具与配置/configs/auto-routing.yaml` 是权威路由表：自然语言请求由
+`mm-orchestrator` 选择唯一主 Skill，并按需组织只读复核。直接用自然语言交代任务即可，
+不需要手动点名 Skill。
 
-## 快速开始
+混合了多类工作的复杂请求会先被拆成有限的 atomic task，再逐个交给同一个确定性 router：
 
-1. 将官方题目、附件和当届规则放入 `01_题目与要求/`。
-2. 将团队已有论文与参考资料放入 `02_参考文献/`。
-3. 在项目根目录运行：
+```powershell
+.\run.ps1 route "拆解题目、变量、单位和约束"        # 单任务路由预览
+.\run.ps1 plan "审计数据缺失值并检验稳健性，同时出主结果图和摘要初稿"
+```
 
-   ```powershell
-   .\run.ps1 status
-   .\run.ps1 validate
-   ```
+`plan` 输出带依赖关系的 task DAG、每个 task 的 Skill/Agent、并行 wave、Gate 停止点，
+以及 writer 冲突检查。它不会替任何人通过 Gate，也不会让两个 writer 同时写同一份产物。
 
-4. 直接用自然语言交代任务，例如：
+## 为什么结果可追溯
 
-   - “拆解题目、变量、单位、目标和约束。”
-   - “比较这三条候选路线，并列出快速试验与失败条件。”
-   - “把已选路线推导成方程、目标、约束和初边值，检查量纲与极限情形。”
-   - “按冻结规格实现可验证基线，并记录可复现运行。”
-   - “从已验证结果写论文摘要，缺失数字列为 blocker。”
+| 环节 | 机制 | 产物 |
+| --- | --- | --- |
+| 输入固定 | 官方题目与原始数据哈希 | `run-manifest.json` → `input_hashes` |
+| 每次正式计算 | tracked run 记录 git 状态、输入/代码/配置哈希、种子、依赖、命令、输出哈希、退出码、耗时 | `03_建模工作区/runs/<run_id>/manifest.json` |
+| 图表绑定数据 | Figure Contract + manifest 绑定 run_id 与输出哈希 | `03_建模工作区/figures/manifest.json` |
+| 论文数字绑定计算 | claim registry 把每句带数字的主张挂到成功的 run | `04_论文与提交/paper/claim_registry.jsonl` |
+| 结果失效传播 | 已批准 Gate 依赖的产物一旦变化，该 Gate 及全部下游自动失效 | `90_工具与配置/state/artifact_snapshots.json` |
 
-详细操作见 [数学建模工作区使用说明.md](数学建模工作区使用说明.md)。
+`claim_registry` 会拒绝只做登记、没有真实执行记录的 run 作为计算型主张的证据：
+没有 git commit、没有代码哈希、没有输出哈希、没有实测耗时，或退出码非 0，都不算证据。
+
+## Human Gates（G1–G7）
+
+| Gate | 人的决定 | 绑定的产物 |
+| --- | --- | --- |
+| G1 | 选哪道题 | 选定的题目 |
+| G2 | 采用哪套方法 | route id、problem id、路线树哈希 |
+| G3 | 冻结模型规范 | `MODEL_SPEC.md` |
+| G4 | 接受基线 | 基线 run 与指标 |
+| G5 | 冻结最终方法与结果 | 结果登记表与 run id |
+| G6 | 批准正式图 | 图表 manifest |
+| G7 | 允许提交 | 整个提交包 |
+
+```powershell
+.\run.ps1 gates        # 只读查看 G1–G7 当前状态
+```
+
+批准只能由人显式下达，并用 `scripts/gate_control.py` 记录（它拒绝 AI 批准者、拒绝跳序）：
+
+```powershell
+.\.venv\Scripts\python.exe 90_工具与配置\scripts\gate_control.py approve G1 `
+  --approved-by "team-lead" --note "数据支持这条路线" --selected-problem "..."
+```
+
+工作模式决定每个 Gate 的仪式量，但**任何模式都不会削弱 G7，也不会允许自动批准**：
+
+```powershell
+.\run.ps1 modes                          # 查看当前模式与各 Gate 的档次
+.\run.ps1 modes --mode competition       # 限时比赛的轻量配置
+```
+
+- `research`（默认，向后兼容）：G1–G7 全部 `required`，完整批准记录。
+- `competition`：G1/G2/G3/G5/G7 仍为 `required`，G4 与 G6 降为 `confirm`
+  （仍需具名的人与说明，只是不要求额外产物绑定）。
+
+## 命令一览
+
+| 命令 | 作用 |
+| --- | --- |
+| `run.ps1 setup` | 建立/刷新 `.venv` 并安装依赖（幂等） |
+| `run.ps1 doctor` | 检查解释器、依赖与外部工具 |
+| `run.ps1 status` | 项目状态、阶段、Gate 与产物计数 |
+| `run.ps1 validate` | 结构检查 + 契约校验 |
+| `run.ps1 test` | 运行 pytest 测试套件 |
+| `run.ps1 verify` | 确定性验证全链路（结构/契约/Gate/失效/主张/AI 溯源/合规/打包边界） |
+| `run.ps1 package` | 通过完整守卫链检查或构建提交包 |
+| `run.ps1 clean` | 清理可再生的缓存（绝不删除 tracked 文件） |
+| `run.ps1 demo` | 运行或复核最小端到端 Demo |
+| `run.ps1 modes` | 查看/校验 research 与 competition 工作模式 |
+| `run.ps1 plan` | 把复杂请求拆成带依赖的 task DAG |
+| `run.ps1 route` | 单个请求的确定性路由预览 |
+| `run.ps1 gates` | 只读查看 G1–G7 状态 |
+| `run.ps1 skills` | 列出项目 Skills |
+| `run.ps1 agents` | 列出项目 Agents |
+| `run.ps1 hash` | 计算官方输入哈希（`--update` 写回 manifest） |
+| `run.ps1 compliance` | 规则驱动的合规检查 |
+| `run.ps1 info` | 解析后的仓库路径与解释器 |
+| `run.ps1 git-status` | 本仓库的简短 git 状态 |
+
+`verify` 与 `package` 的边界（重要）：
+
+- `verify` 执行真实检查并如实报告，其中「比赛尚未配置、尚无主张、尚无 Gate 批准」这类
+  未开工项标为 `later`，不会被伪装成通过。它**不会**把
+  `90_工具与配置/reports/verify.json` 写成 `verified`——独立验证必须由独立复核人具名记录。
+- `package` 在 G7 未批准、独立验证未完成或边界规则不通过时**正确地 BLOCKED 并非零退出**，
+  不会创建任何压缩包，也不会绕过 compliance、verify 或 package guard。
+
+### 运行前置未就绪时
+
+任何 `run.ps1` 命令在 `.venv` 缺失时都会明确告诉你下一步：
+
+```text
+Project Python is missing.
+  expected: <repo>\.venv\Scripts\python.exe
+
+Run the setup step first:
+  PowerShell :  .\setup.ps1
+  cmd.exe    :  setup.ps1
+  Git Bash   :  ./setup.sh
+```
+
+## Skills 与 Agents 概览
+
+22 个项目 Skills，覆盖证据检索、文献核验、问题分析、数据审计、路线比较、数学推导、
+MODEL_SPEC、求解策略、实现、优化、验证/UQ、复现、科学制图、论文、合规与上下文治理。
+
+11 个专职 Agents，各自有明确读写边界：`researcher`、`critic`、`judge`、`deriver`
+（写推导）、`implementer`（写基线）、`optimizer`（写实验）、`visualizer`（写图）为写入者，
+`validator`、`replicator`、`reviewer`、`compliance` 为只读复核者。
+同一产物永远只有一个 writer；只读复核可以并行。
+
+完整的 22 个 Skill 与 11 个 Agent 功能表见
+[CODEX_CAPABILITIES.md](CODEX_CAPABILITIES.md)；日常操作细节见
+[数学建模工作区使用说明.md](数学建模工作区使用说明.md)。
 
 ## 目录
 
 ```text
-01_题目与要求/       官方题目、附件、规则，只读源
+01_题目与要求/       官方题目、附件、规则（只读源）
 02_参考文献/         用户提供或核验后的参考资料
 03_建模工作区/       问题分析、模型、代码、测试、实验、结果、图表、运行记录
 04_论文与提交/       论文、引用、AI 使用记录和提交包
-90_工具与配置/       Agent、Skill、路由、脚本、Schema、模板和工具报告
-.agents/             Skill 发现镜像
-.codex/              Agent 与 Hook 发现镜像
+90_工具与配置/       Agent、Skill、路由、脚本、Schema、模板与工具报告
+examples/toy_demo/   最小端到端示例（合成数据）
+.github/workflows/   CI（ruff / 结构契约 / verify / pytest）
+.agents/ .codex/     客户端发现镜像
 ```
 
-正式代码只进入 `03_建模工作区/src/`，正式论文只进入 `04_论文与提交/paper/`。
+正式代码只进 `03_建模工作区/src/`，正式论文只进 `04_论文与提交/paper/`。
+根目录 `.agents` 与 `.codex` 是发现入口，权威副本在 `90_工具与配置/` 下。
 
-## 新增专项能力
+## 开发与测试
 
-### 数学建模推导
+```powershell
+.\setup.ps1 -Ci -NoDoctor
+.\.venv\Scripts\python.exe -m ruff check .
+.\run.ps1 test
+.\run.ps1 verify
+.\run.ps1 validate
+```
 
-`mm-mathematical-derivation` 与 `deriver` 位于路线选择和 MODEL_SPEC 之间。它要求把
-题设事实、定义、假设、数学后果和经验估计分开，输出可审计的符号表、推导步骤、最终
-方程/目标/约束、适用条件及独立检查。方法参考与许可证记录见该 Skill 的
-`references/methodology-sources.md`；第三方内容未被逐字复制。
+CI（`.github/workflows/ci.yml`）在 push 与 pull_request 上运行，矩阵为
+Ubuntu/Windows × Python 3.11/3.13，步骤依次是 setup → ruff → CLI help → doctor →
+validate → verify → pytest。CI 不需要任何密钥、赛题数据，也不要求人工 Gate 已批准；
+提交前的最终验证与普通代码 CI 是分开的两件事。
 
-### CUMCM 论文写作与评审
+`ruff` 配置见 `pyproject.toml`。E501（行长）在 `[tool.ruff.lint.per-file-ignores]` 中被
+显式忽略并注明原因：本仓库脚本与测试历史上按 100 列以上书写，全仓重排不在本次修改范围内；
+F/I/UP/B 这些能抓到真实 bug 与不稳定写法的规则保持全量启用。
 
-`mm-cumcm-paper-writing-review` 由仓库所有者原创提供，包含摘要、自查、结构、模型工具箱、
-证据化评审和 PDF 文本提取辅助工具。公开版已将本机论文库路径改为
-`CUMCM_PAPER_LIBRARY` 或项目内 `02_参考文献/优秀论文库/`。其格式文件只是工作清单；
-页数、文件大小、匿名和 AI 声明必须重新核对当届官方规则。
+## 高级架构
+
+- `90_工具与配置/scripts/`：确定性工具层（状态、契约、运行记录、主张、Gate、打包守卫）。
+- `90_工具与配置/schemas/`：11 个机器可校验结构。
+- `90_工具与配置/configs/`：`auto-routing.yaml`（权威路由表）、`workflow-modes.yaml`
+  （工作模式）、`artifact_boundaries.yaml`（打包边界）、`contest.yaml`（赛制规则）等。
+- `90_工具与配置/templates/`：Figure Contract 与 LaTeX 模板。
+- `90_工具与配置/reports/verify.json`：独立最终验证记录，默认 `pending`，只能由独立复核人完成。
+- `90_工具与配置/reports/verify-run.json`：`verify` 自身的机器可读运行报告（可选 `--write-report`）。
 
 ## 安全与复现原则
 
 - 不编造命令输出、数据、文献、实验、图表或通过状态。
 - 不把 solver success 当成模型正确；推导、实现与验证分别审查。
 - 不在公开模板中保存密钥、私有仓库地址、个人绝对路径或具体赛题成果。
+- Agent、Skill、测试与 Hook 只能报告准备度，不能批准 Gate。
 - 范文只用于学习结构与深度，引用和复用必须遵守来源许可及竞赛规则。
+
+## 来源与许可
+
+- **许可证待定**：本仓库尚未选择开源许可证，见 [LICENSE_PENDING.md](LICENSE_PENDING.md)。
+  在仓库所有者做出选择之前，请勿假定可以再分发或商用。
+- 第三方设计参考与许可证记录见
+  [90_工具与配置/third_party/UPSTREAM_SOURCES.md](90_工具与配置/third_party/UPSTREAM_SOURCES.md)；
+  `mm-mathematical-derivation` 的方法来源见其
+  `references/methodology-sources.md`。
+- `context-optimization` Skill 来源于宽松许可的上游项目，来源与提交哈希记录在
+  [CODEX_CAPABILITIES.md](CODEX_CAPABILITIES.md)。

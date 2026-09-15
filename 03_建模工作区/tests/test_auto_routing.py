@@ -1,4 +1,3 @@
-from pathlib import Path
 import pytest
 from scripts.auto_route import route_task
 

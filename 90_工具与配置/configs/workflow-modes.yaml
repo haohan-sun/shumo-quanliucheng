@@ -1,0 +1,61 @@
+schema_version: "1.0"
+# Workflow modes for a human-in-the-loop workspace.
+#
+# The full G1-G7 Human Gate model is never removed.  Modes only decide how much
+# ceremony each Gate requires.  ``research`` is the default and preserves the
+# original semantics exactly, so existing workspaces keep their behaviour.
+#
+# requirement tiers
+#   required : explicit human approval with full artifact binding, exactly as today
+#   confirm  : explicit human approval, lightweight (human note still mandatory)
+#   check    : deterministic automated check only -- never an approval
+#
+# Rules enforced by scripts/workflow_mode.py (and covered by tests):
+#   * no tier may be auto-approved: ``auto_approvable`` is always false;
+#   * the final submission Gate (G7) may never be weaker than ``confirm``;
+#   * a mode may not drop a Gate from the inventory: all of G1-G7 always exist;
+#   * artifact-change invalidation is mode-independent and stays in artifact_state.
+default_mode: research
+
+modes:
+  research:
+    display_name: "Research / full workflow"
+    description: >-
+      Long-horizon modelling projects: every Gate keeps full approval records with
+      bound artifacts. This is the original project behaviour and the default.
+    gates:
+      G1: {requirement: required, stage: "problem selection"}
+      G2: {requirement: required, stage: "model/method selection"}
+      G3: {requirement: required, stage: "MODEL_SPEC freeze"}
+      G4: {requirement: required, stage: "baseline approval"}
+      G5: {requirement: required, stage: "final method/results freeze"}
+      G6: {requirement: required, stage: "final figure approval"}
+      G7: {requirement: required, stage: "ready-to-submit"}
+
+  competition:
+    display_name: "Time-boxed competition"
+    description: >-
+      Limited-time contests: the human decisions that carry scientific and
+      integrity risk stay mandatory (problem selection, method, MODEL_SPEC,
+      results, submission). Baseline presence and final-figure presentation
+      become lightweight human confirmations instead of full approval records.
+      Nothing is ever auto-approved and G7 is unchanged.
+    gates:
+      G1: {requirement: required, stage: "problem selection"}
+      G2: {requirement: required, stage: "model/method selection"}
+      G3: {requirement: required, stage: "MODEL_SPEC freeze"}
+      G4: {requirement: confirm, stage: "baseline presence"}
+      G5: {requirement: required, stage: "final method/results freeze"}
+      G6: {requirement: confirm, stage: "final figure presentation"}
+      G7: {requirement: required, stage: "ready-to-submit"}
+
+# Every Gate in every mode.  ``auto_approvable`` documents the invariant that no
+# mode may let automation pass a Gate; the validator rejects any other value.
+invariants:
+  auto_approvable: false
+  gate_inventory: ["G1", "G2", "G3", "G4", "G5", "G6", "G7"]
+  protected_gates: ["G7"]
+
+notes: >-
+  Switching mode never rewrites approval records. A downstream approval still
+  becomes invalid when an upstream artifact changes, in every mode.

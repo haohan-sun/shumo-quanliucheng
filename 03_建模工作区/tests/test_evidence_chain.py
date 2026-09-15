@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 
 import jsonschema
-
 from scripts._project import sha256_file
 from scripts.validate_contracts import artifact_run_link_errors
 

@@ -6,7 +6,7 @@ any real experiment; beam width and quick-test budget cap exploration; prune
 promotes survival only.
 
 CLI:
-    python 90_工具与配置/scripts/route_tree.py --stats 03_建模工作区/decisions/route_tree.json
+    python 90_工具与配置/scripts/route_tree.py --stats 03_建模工作区/decisions/route-tree.json
 """
 
 from __future__ import annotations

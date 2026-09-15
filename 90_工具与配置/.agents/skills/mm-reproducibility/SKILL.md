@@ -18,8 +18,11 @@ description: "AUTO TRIGGER: any important experiment, baseline, validation, or f
   --config '{"model":"baseline"}' --seed main=42 `
   --input 01_题目与要求 --code 03_建模工作区/src `
   --output metrics=03_建模工作区/results/metrics.json --timeout 600 -- `
-  .\.venv\Scripts\python.exe 03_建模工作区/src/pipeline.py
+  .\.venv\Scripts\python.exe 03_建模工作区/src/<your_script>.py
 ```
+
+`<your_script>.py` 是本项目按 MODEL_SPEC 实现的计算入口（G4 基线就是第一个）。
+没有实现脚本时，可先用公开的玩具算例 `examples/toy_demo/src/fit_decay.py` 走通整条链路。
 
 `run_record.py` 的库接口仅用于需要程序内分阶段登记的高级场景；只创建/补写记录、
 却没有成功退出码和真实产物的 bookkeeping record 不能支撑计算型论文 claim。
@@ -27,11 +30,16 @@ description: "AUTO TRIGGER: any important experiment, baseline, validation, or f
 ## 程序内高级用法
 
 ```python
-import sys; sys.path.insert(0, "90_工具与配置")
+import sys
+
+sys.path.insert(0, "90_工具与配置")
 from scripts.run_record import create_run, finalize_run, add_output
 
-run = create_run(config={"model": "baseline", "lr": 0.1}, seeds={"main": 42},
-                 command=["python", "03_建模工作区/src/pipeline.py", "--lr", "0.1"])
+run = create_run(
+    config={"model": "baseline", "lr": 0.1},
+    seeds={"main": 42},
+    command=["python", "03_建模工作区/src/<your_script>.py", "--lr", "0.1"],
+)
 # ... 执行并写入输出文件 ...
 add_output(run, "results/metrics.json", kind="metrics")
 finalize_run(run, metrics={"rmse": 0.31}, runtime_seconds=12.4)

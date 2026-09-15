@@ -39,16 +39,25 @@ REQUIRED_MODULES = {
     "ipykernel": "ipykernel",
     "kaleido": "kaleido",
 }
-REQUIRED_COMMANDS = ["git", "uv", "ruff"]
-OPTIONAL_COMMANDS = ["pandoc", "pdflatex", "xelatex", "latexmk"]
+# ``uv`` is an optional accelerator: setup works with plain pip, so its absence
+# must not fail the environment.  Only git and the project's own linter are
+# required for the documented workflow.
+REQUIRED_COMMANDS = ["git", "ruff"]
+OPTIONAL_COMMANDS = ["uv", "pandoc", "pdflatex", "xelatex", "latexmk"]
 
 
 def _command_path(name: str) -> str | None:
     discovered = shutil.which(name)
     if discovered:
         return discovered
-    local = ROOT / ".venv" / "Scripts" / f"{name}.exe"
-    return str(local) if local.is_file() else None
+    for relative in (
+        Path(".venv") / "Scripts" / f"{name}.exe",
+        Path(".venv") / "bin" / name,
+    ):
+        local = ROOT / relative
+        if local.is_file():
+            return str(local)
+    return None
 
 
 def inspect_environment() -> dict[str, object]:
@@ -119,10 +128,18 @@ def render_report(report: dict[str, object]) -> str:
         ]
     )
     for name, path in commands.items():
-        requirement = "required" if name in REQUIRED_COMMANDS else "optional/later-stage"
+        if name in REQUIRED_COMMANDS:
+            requirement = "required"
+        elif name == "uv":
+            requirement = "optional (setup accelerator)"
+        else:
+            requirement = "optional/later-stage"
         lines.append(f"| `{name}` | `{path or 'MISSING'}` | {requirement} |")
     lines.extend(
         [
+            "",
+            "Missing `uv` only means setup used pip instead; the workspace is fully "
+            "functional without it.",
             "",
             "Missing Pandoc or LaTeX is not a bootstrap blocker, but it blocks the "
             "corresponding paper-rendering path later.",

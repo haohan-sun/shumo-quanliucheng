@@ -5,8 +5,7 @@ import jsonschema
 import numpy as np
 import pandas as pd
 import pytest
-
-from scripts.data_audit import audit_dataframe, audit_file
+from scripts.data_audit import audit_file
 from scripts.error_registry import query_errors, record_error, resolve
 from scripts.problem_analysis import check_analysis
 from scripts.solver_strategy import classify, portfolio_for

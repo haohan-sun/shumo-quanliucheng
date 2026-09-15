@@ -1,5 +1,6 @@
-from pathlib import Path
 import zipfile
+from pathlib import Path
+
 import pytest
 from scripts import build_submission as build
 from scripts.package_guard import assert_package_files, check_target, excluded, load_boundaries

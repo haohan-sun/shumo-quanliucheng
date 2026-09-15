@@ -14,7 +14,7 @@ Present tradeoffs to humans and stop before G2.
 在平面评分之外，用**预算制 beam/tree search** 组织候选路线
 （借鉴 AI-Scientist-v2 / AFlow 的树搜索与分数剪枝思想，轻量实现）：
 
-1. **建树**：`python 90_工具与配置/scripts/route_tree.py --tree 03_建模工作区/decisions/route_tree.json --init problem-id`。
+1. **建树**：`python 90_工具与配置/scripts/route_tree.py --tree 03_建模工作区/decisions/route-tree.json --init problem-id`。
    人类提名的路线为 depth-0 根节点；每个节点记录 parent、hypothesis、model_family、
    preprocessing、objective、constraints、solver、complexity、evidence、novelty、
    expected_score、risk、failure_condition、experiment_cost、status。
@@ -31,7 +31,8 @@ Present tradeoffs to humans and stop before G2.
    tradeoffs、风险与 fallback 提交给人工 G2。`promote` 只在人工批准后执行，
    必须读取 run manifest 中已批准的 G2（approved_by 为人、approved_at 可解析，并明确绑定 problem_id 与 route_id）；本脚本不写 Gate。
    其余存活路线自动置 pruned（reason="lost to promoted route"），树关闭后拒绝新增、review、revise 等修改。
-6. **产物**：树 JSON 存 `03_建模工作区/decisions/route_tree.json`；
+6. **产物**：树 JSON 存 `03_建模工作区/decisions/route-tree.json`
+   （连字符命名；`gate_control.py` 与 `auto-routing.yaml` 都按此路径解析）；
    失败路线的教训写入 error registry（category=math/solver/data 等）。
 
 红线：预算字段不可为绕过检查而调大——确需扩大，向人工说明并记录决策；
@@ -40,7 +41,7 @@ Present tradeoffs to humans and stop before G2.
 ## 调用与证据接入
 
 orchestrator 将候选只读材料分别交 researcher 和 critic；judge 在相同评价准则下只读比较，返回证据和建议，不产生 G2 approval。
-主调度器是 route_tree.json 唯一 writer。快测使用已有执行器的短预算运行，先记录 reproducibility run_id、参数、seed、输入/代码 hash，再把 evidence 中的报告路径关联到节点。
+主调度器是 route-tree.json 唯一 writer。快测使用已有执行器的短预算运行，先记录 reproducibility run_id、参数、seed、输入/代码 hash，再把 evidence 中的报告路径关联到节点。
 `record_quick_test` 只登记已执行的实测结果，不自行运行模型，也不把 expected_score 冒充实测值。
 失败条件与剪枝原因提供给 error registry；最终比较材料关联 claim registry，未过 G2 的候选不得成为正式方法声明。
 

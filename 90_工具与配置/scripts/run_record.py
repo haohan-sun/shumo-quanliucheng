@@ -13,14 +13,13 @@ CLI:
 
 from __future__ import annotations
 
+import csv
+import hashlib
 import json
-import os
 import platform
 import subprocess
 import sys
 import uuid
-import hashlib
-import csv
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -81,7 +80,7 @@ def create_run(
     code_paths: list[Path] | None = None,
     root: Path = ROOT,
 ) -> dict[str, Any]:
-    from scripts.artifact_state import resolve_artifact, _hash_target
+    from scripts.artifact_state import _hash_target, resolve_artifact
     if not command:
         raise ValueError("a non-empty command is required")
     def hashes(paths):
@@ -182,8 +181,9 @@ def finalize_run(
 def validate_run_record(record: dict[str, Any], run_dir: Path, *, root: Path = ROOT,
                         check_inputs: bool = True) -> list[str]:
     """Read-only provenance verification, suitable for validator and paper checks."""
-    from scripts.artifact_state import resolve_artifact, _hash_target
     import jsonschema
+
+    from scripts.artifact_state import _hash_target, resolve_artifact
     schema = json.loads((ROOT / "90_工具与配置/schemas/run-record.schema.json").read_text(encoding="utf-8"))
     errors = [error.message for error in jsonschema.Draft202012Validator(schema).iter_errors(record)]
     if errors:

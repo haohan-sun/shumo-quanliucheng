@@ -14,13 +14,13 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from scripts._project import ROOT, dump_json, load_json, load_yaml
+from scripts.artifact_state import sync_manifest
 from scripts.build_ai_usage_report import build as build_ai_report
 from scripts.build_ai_usage_report import validate_ledger
 from scripts.doctor import inspect_environment
 from scripts.status import collect_status
 from scripts.validate_contracts import validate_project
 from scripts.verify_structure import verify
-from scripts.artifact_state import sync_manifest
 
 TOOLS_RELATIVE = Path("90_工具与配置")
 PAPER_RELATIVE = Path("04_论文与提交")

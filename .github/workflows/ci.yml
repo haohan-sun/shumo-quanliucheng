@@ -1,0 +1,65 @@
+name: CI
+
+# Fast, deterministic checks only. These never approve a Human Gate, never build
+# a submission package, and never require contest data, secrets or a LaTeX
+# toolchain. Submission final verification is a separate, human-driven process
+# (`run.ps1 package`), deliberately not part of this workflow.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.11", "3.13"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Bootstrap project environment
+        shell: pwsh
+        run: ./setup.ps1 -Ci -NoDoctor
+
+      - name: Lint (ruff)
+        shell: pwsh
+        run: ./.venv/Scripts/python.exe -m ruff check .
+
+      - name: CLI help is reachable
+        shell: pwsh
+        run: ./run.ps1 help
+
+      - name: Environment doctor
+        shell: pwsh
+        run: ./run.ps1 doctor --json
+
+      - name: Structure and contract validation
+        shell: pwsh
+        run: ./run.ps1 validate
+
+      - name: Deterministic verification
+        shell: pwsh
+        run: ./run.ps1 verify
+
+      - name: Full test suite
+        shell: pwsh
+        run: ./run.ps1 test

@@ -1,43 +1,84 @@
+<#
+.SYNOPSIS
+    Project CLI: setup, doctor, status, validate, test, verify, package, clean.
+
+.DESCRIPTION
+    Thin Windows launcher.  All command behaviour lives in
+    <tool root>/scripts/cli.py so that Windows and POSIX runs cannot drift apart.
+    This file is deliberately ASCII-only: Windows PowerShell 5.1 decodes a
+    BOM-less script as ANSI, and non-ASCII bytes made the earlier version fail to
+    parse at all.
+
+    Human Gate approval is NOT available through this CLI.  Gate decisions are
+    recorded only by scripts/gate_control.py after an explicit human decision.
+
+.PARAMETER Command
+    setup | doctor | status | validate | test | verify | package | clean |
+    skills | agents | gates | info | route | plan | hash | compliance |
+    git-status | help
+
+.EXAMPLE
+    .\run.ps1 doctor
+    Check the interpreter, dependencies and external tools.
+
+.EXAMPLE
+    .\run.ps1 validate
+    Run structure and contract validation.
+
+.EXAMPLE
+    .\run.ps1 verify --with-tests
+    Full deterministic verification including the pytest suite.
+#>
 param(
-    [ValidateSet("status", "validate", "doctor", "hash", "compliance", "pytest", "skills", "agents", "git-status")]
-    [string]$Command = "status",
-    [switch]$Update
+    [Parameter(Position = 0)]
+    [string]$Command = 'help',
+
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$Args
 )
 
-$toolRoot = Join-Path $PSScriptRoot "90_工具与配置"
-$python = Join-Path $PSScriptRoot ".venv\Scripts\python.exe"
-$env:UV_CACHE_DIR = Join-Path $toolRoot ".cache\uv"
-$env:PYTHONDONTWRITEBYTECODE = "1"
+$ErrorActionPreference = 'Stop'
+$repoRoot = $PSScriptRoot
 
-if (-not (Test-Path -LiteralPath $python)) {
-    Write-Error "Project Python is missing: $python"
+# Locate the tool root ('90_*') without embedding non-ASCII bytes in this file.
+$toolsDir = Get-ChildItem -LiteralPath $repoRoot -Directory -Filter '90_*' -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+if (-not $toolsDir) {
+    Write-Error "Cannot locate the tool root (a '90_*' directory) under $repoRoot."
+    exit 2
+}
+$toolsRoot = $toolsDir.FullName
+$cli = Join-Path $toolsRoot 'scripts\cli.py'
+
+$python = $null
+foreach ($relative in @('.venv\Scripts\python.exe', '.venv\bin\python')) {
+    $candidate = Join-Path $repoRoot $relative
+    if (Test-Path -LiteralPath $candidate) { $python = $candidate; break }
+}
+
+if (-not $python) {
+    Write-Host 'Project Python is missing.' -ForegroundColor Yellow
+    Write-Host "  expected: $(Join-Path $repoRoot '.venv\Scripts\python.exe')"
+    Write-Host ''
+    Write-Host 'Run the setup step first:'
+    Write-Host '  PowerShell :  .\setup.ps1'
+    Write-Host '  cmd.exe    :  setup.ps1'
+    Write-Host '  Git Bash   :  ./setup.sh'
     exit 2
 }
 
-Push-Location $PSScriptRoot
+$env:UV_CACHE_DIR = Join-Path $toolsRoot '.cache\uv'
+$env:PYTHONDONTWRITEBYTECODE = '1'
+# Keep UTF-8 output intact on Windows PowerShell 5.1 consoles.
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
+
+Push-Location $repoRoot
 try {
-    switch ($Command) {
-        "status" { & $python "$toolRoot\scripts\status.py" "--json" }
-        "validate" { & $python "$toolRoot\scripts\validate.py" "--with-tests" }
-        "doctor" { & $python "$toolRoot\scripts\doctor.py" }
-        "hash" {
-            if ($Update) { & $python "$toolRoot\scripts\hash_inputs.py" "--update" }
-            else { & $python "$toolRoot\scripts\hash_inputs.py" }
-        }
-        "compliance" { & $python "$toolRoot\scripts\compliance.py" "--json" }
-        "pytest" { & $python "-m" "pytest" "-ra" }
-        "skills" { Get-ChildItem -LiteralPath "$toolRoot\.agents\skills" -Directory | Sort-Object Name | Select-Object -ExpandProperty Name }
-        "agents" { Get-ChildItem -LiteralPath "$toolRoot\.codex\agents" -File | Sort-Object Name | Select-Object -ExpandProperty BaseName }
-        "git-status" {
-            $safePath = $PSScriptRoot.Replace("\", "/")
-            & git -c "safe.directory=$safePath" -C $PSScriptRoot status --short
-        }
-    }
-    $commandExitCode = $LASTEXITCODE
-    if ($null -eq $commandExitCode) { $commandExitCode = 0 }
-}
-finally {
+    & $python $cli $Command @Args
+    $exitCode = $LASTEXITCODE
+    if ($null -eq $exitCode) { $exitCode = 0 }
+} finally {
     Pop-Location
 }
 
-exit $commandExitCode
+exit $exitCode
