@@ -17,7 +17,6 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
-
 from viz import templates  # noqa: E402
 from viz.style_presets import apply_style, save_figure  # noqa: E402
 
@@ -57,6 +56,16 @@ def main() -> int:
     pts = rng.uniform([0, 0], [5, 5], size=(40, 2))
     pts[:, 1] += pts[:, 0] * 0.8
     check("pareto_front", lambda: templates.pareto_front(pts))
+    center = np.sin(x)
+    check("uncertainty_band", lambda: templates.uncertainty_band(
+        x, center, center - 0.2, center + 0.2, xlabel="t", ylabel="response"))
+    observed = np.linspace(0, 5, 60)
+    check("observed_vs_predicted", lambda: templates.observed_vs_predicted(
+        observed, observed + rng.normal(0, 0.25, observed.size)))
+    check("distribution_ecdf", lambda: templates.distribution_ecdf({
+        "method A": rng.normal(0, 1, 100),
+        "method B": rng.normal(0.4, 0.8, 100),
+    }))
     try:
         check("network_graph", lambda: templates.network_graph(
             [(0, 1, 2.0), (1, 2, 1.0), (2, 0, 1.5), (2, 3, 3.0)],

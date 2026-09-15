@@ -6,14 +6,14 @@
 
 from __future__ import annotations
 
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
-from viz.style_presets import OKABE_ITO
+from viz.style_presets import NEUTRAL_COLORS, PROJECT_COLORS, project_sequential_cmap
 
 
 def line_comparison(
@@ -29,7 +29,8 @@ def line_comparison(
     """
     fig, ax = plt.subplots()
     markers = itertools_cycle_markers()
-    for (name, y), mk in zip(series.items(), markers):
+    for index, (name, y) in enumerate(series.items()):
+        mk = markers[index % len(markers)]
         ax.plot(x, y, label=name, marker=mk, markersize=4)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -50,13 +51,13 @@ def bar_with_error(
     fig, ax = plt.subplots()
     idx = np.arange(len(categories))
     if horizontal:
-        ax.barh(idx, values, xerr=errors, color=OKABE_ITO[1], capsize=3)
+        ax.barh(idx, values, xerr=errors, color=PROJECT_COLORS[0], capsize=3)
         ax.set_yticks(idx, labels=categories)
         ax.invert_yaxis()
         if ylabel:
             ax.set_xlabel(ylabel)
     else:
-        ax.bar(idx, values, yerr=errors, color=OKABE_ITO[1], capsize=3)
+        ax.bar(idx, values, yerr=errors, color=PROJECT_COLORS[0], capsize=3)
         ax.set_xticks(idx, labels=categories)
         if ylabel:
             ax.set_ylabel(ylabel)
@@ -67,14 +68,14 @@ def heatmap_annotated(
     matrix: np.ndarray,
     row_labels: Sequence[str],
     col_labels: Sequence[str],
-    cmap: str = "viridis",
+    cmap=None,
     fmt: str = ".2f",
     colorbar_label: str = "",
 ) -> tuple[Figure, Axes]:
     """带数值标注的热力图：相关矩阵、混淆矩阵、灵敏度矩阵。"""
     matrix = np.asarray(matrix, dtype=float)
     fig, ax = plt.subplots()
-    im = ax.imshow(matrix, cmap=cmap, aspect="auto")
+    im = ax.imshow(matrix, cmap=cmap or project_sequential_cmap(), aspect="auto")
     ax.set_xticks(range(len(col_labels)), labels=col_labels, rotation=45, ha="right")
     ax.set_yticks(range(len(row_labels)), labels=row_labels)
     thresh = (matrix.max() + matrix.min()) / 2 if matrix.size else 0
@@ -97,8 +98,8 @@ def residual_diagnostic(
     fitted = np.asarray(fitted, dtype=float)
     residuals = np.asarray(residuals, dtype=float)
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8.0, 3.2))
-    ax1.scatter(fitted, residuals, s=12, color=OKABE_ITO[5], alpha=0.7)
-    ax1.axhline(0, color="black", linewidth=0.8)
+    ax1.scatter(fitted, residuals, s=12, color=PROJECT_COLORS[0], alpha=0.7)
+    ax1.axhline(0, color=NEUTRAL_COLORS["ink"], linewidth=0.8)
     ax1.set_xlabel("Fitted values")
     ax1.set_ylabel("Residuals")
     from scipy import stats
@@ -124,8 +125,8 @@ def sensitivity_tornado(
     low, high = low[order], high[order]
     fig, ax = plt.subplots()
     idx = np.arange(len(names))
-    ax.barh(idx, high - low, left=low, color=OKABE_ITO[6], alpha=0.85)
-    ax.axvline(0, color="black", linewidth=0.8)
+    ax.barh(idx, high - low, left=low, color=PROJECT_COLORS[1], alpha=0.85)
+    ax.axvline(0, color=NEUTRAL_COLORS["ink"], linewidth=0.8)
     ax.set_yticks(idx, labels=names)
     ax.invert_yaxis()
     ax.set_xlabel(xlabel)
@@ -141,6 +142,7 @@ def pareto_front(
     """Pareto 前沿图：多目标优化结果（最小化两目标）。"""
     costs = np.asarray(costs, dtype=float)
     order = np.lexsort((costs[:, 1], costs[:, 0]))
+    sorted_labels = [labels[i] for i in order] if labels else None
     costs = costs[order]
     front_x, front_y = [], []
     best_y = np.inf
@@ -150,14 +152,14 @@ def pareto_front(
             front_y.append(cy)
             best_y = cy
     fig, ax = plt.subplots()
-    ax.scatter(costs[:, 0], costs[:, 1], s=18, color=OKABE_ITO[2], alpha=0.5,
+    ax.scatter(costs[:, 0], costs[:, 1], s=18, color=PROJECT_COLORS[3], alpha=0.65,
                label="All solutions")
     fx, fy = np.asarray(front_x), np.asarray(front_y)
     ax.step(np.concatenate([[fx[0]], fx]), np.concatenate([fy, [fy[-1]]]),
-            where="post", color=OKABE_ITO[3], linewidth=1.4, label="Pareto front")
-    ax.scatter(fx, fy, s=26, color=OKABE_ITO[3], zorder=3)
-    if labels:
-        for (cx, cy), lb in zip(costs, labels):
+            where="post", color=PROJECT_COLORS[0], linewidth=1.4, label="Pareto front")
+    ax.scatter(fx, fy, s=26, color=PROJECT_COLORS[0], zorder=3)
+    if sorted_labels:
+        for (cx, cy), lb in zip(costs, sorted_labels, strict=True):
             ax.annotate(lb, (cx, cy), fontsize=6, xytext=(3, 3),
                         textcoords="offset points")
     ax.set_xlabel(xlabel)
@@ -187,11 +189,95 @@ def network_graph(
     fig, ax = plt.subplots()
     widths = [max(0.5, float(d.get(weight_label, 1.0))) for _, _, d in g.edges(data=True)]
     nx.draw_networkx_edges(g, pos, ax=ax, width=widths, alpha=0.5)
-    nx.draw_networkx_nodes(g, pos, ax=ax, node_size=180, node_color=OKABE_ITO[1])
+    nx.draw_networkx_nodes(g, pos, ax=ax, node_size=180, node_color=PROJECT_COLORS[1])
     if node_labels:
         nx.draw_networkx_labels(g, pos, {i: lb for i, lb in enumerate(node_labels)},
                                 font_size=7, ax=ax)
     ax.set_axis_off()
+    return fig, ax
+
+
+def uncertainty_band(
+    x: Sequence[float],
+    center: Sequence[float],
+    lower: Sequence[float],
+    upper: Sequence[float],
+    xlabel: str = "",
+    ylabel: str = "",
+    interval_label: str = "Uncertainty interval",
+) -> tuple[Figure, Axes]:
+    """中心估计与区间带：置信、可信、预测、分位或情景区间。"""
+    x_arr = np.asarray(x, dtype=float)
+    center_arr = np.asarray(center, dtype=float)
+    lower_arr = np.asarray(lower, dtype=float)
+    upper_arr = np.asarray(upper, dtype=float)
+    if not (x_arr.shape == center_arr.shape == lower_arr.shape == upper_arr.shape):
+        raise ValueError("x、center、lower、upper 必须形状一致")
+    if np.any(lower_arr > center_arr) or np.any(center_arr > upper_arr):
+        raise ValueError("区间必须满足 lower <= center <= upper")
+    fig, ax = plt.subplots()
+    ax.fill_between(
+        x_arr, lower_arr, upper_arr, color=PROJECT_COLORS[4], alpha=0.7,
+        label=interval_label,
+    )
+    ax.plot(x_arr, center_arr, color=PROJECT_COLORS[0], label="Center estimate")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.legend()
+    return fig, ax
+
+
+def observed_vs_predicted(
+    observed: Sequence[float],
+    predicted: Sequence[float],
+    xlabel: str = "Observed",
+    ylabel: str = "Predicted",
+) -> tuple[Figure, Axes]:
+    """观测值—预测值图：带等值参考线，用于独立验证或留出集评估。"""
+    observed_arr = np.asarray(observed, dtype=float)
+    predicted_arr = np.asarray(predicted, dtype=float)
+    if observed_arr.shape != predicted_arr.shape or observed_arr.size == 0:
+        raise ValueError("observed 与 predicted 必须是等长非空数组")
+    finite = np.isfinite(observed_arr) & np.isfinite(predicted_arr)
+    if not np.all(finite):
+        raise ValueError("observed 与 predicted 必须全部为有限数")
+    lo = float(min(observed_arr.min(), predicted_arr.min()))
+    hi = float(max(observed_arr.max(), predicted_arr.max()))
+    fig, ax = plt.subplots()
+    ax.scatter(observed_arr, predicted_arr, color=PROJECT_COLORS[1], marker="o", alpha=0.75)
+    ax.plot([lo, hi], [lo, hi], color=NEUTRAL_COLORS["ink"], linestyle="--", label="Identity")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_aspect("equal", adjustable="box")
+    ax.legend()
+    return fig, ax
+
+
+def distribution_ecdf(
+    samples: dict[str, Sequence[float]],
+    xlabel: str = "Value",
+    ylabel: str = "Empirical cumulative probability",
+) -> tuple[Figure, Axes]:
+    """多组经验累积分布：展示随机运行总体、尾部与稳定性。"""
+    if not samples:
+        raise ValueError("samples 不能为空")
+    fig, ax = plt.subplots()
+    markers = itertools_cycle_markers()
+    for index, (name, values) in enumerate(samples.items()):
+        marker = markers[index % len(markers)]
+        arr = np.sort(np.asarray(values, dtype=float))
+        if arr.size == 0 or not np.all(np.isfinite(arr)):
+            raise ValueError(f"样本 {name!r} 必须包含有限数")
+        probability = np.arange(1, arr.size + 1) / arr.size
+        markevery = max(1, arr.size // 8)
+        ax.step(
+            arr, probability, where="post", label=name, marker=marker,
+            markevery=markevery, markersize=4,
+        )
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_ylim(0, 1.02)
+    ax.legend()
     return fig, ax
 
 

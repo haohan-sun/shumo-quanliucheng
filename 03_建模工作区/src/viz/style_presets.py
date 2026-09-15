@@ -11,27 +11,40 @@
 
 设计原则（对标 SciencePlots 的 science/ieee 风格，不依赖 LaTeX）：
 - 论文风格使用衬线字体、细线宽、紧凑留白，300 dpi 起；
-- 配色一律色盲安全（基于 Okabe-Ito / Paul Tol 色板）；
+- 项目图统一使用冷调紫蓝色板，并通过 marker/线型/纹理提供冗余编码；
 - 所有 rc 参数集中在此文件，图模板不得散落硬编码样式。
 """
 
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Iterable, Sequence
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 
-# Okabe-Ito 色盲安全色板
-OKABE_ITO: list[str] = [
-    "#000000", "#E69F00", "#56B4E9", "#009E73",
-    "#F0E442", "#0072B2", "#D55E00", "#CC79A7",
+# 项目唯一默认色板；语义与扩展规则见 VISUAL_STYLE_GUIDE.md。
+PROJECT_COLORS: list[str] = [
+    "#4F587D", "#776B97", "#C68DC0", "#C2E0EE", "#DBC4ED",
 ]
 
-# 高对比顺序色板（热图等，ColorBrewer "viridis" 之外的手工替代）
-SEQUENTIAL_CMAP_CANDIDATES = ["viridis", "cividis"]  # cividis 为色盲优化
+NEUTRAL_COLORS: dict[str, str] = {
+    "ink": "#1B1F23",
+    "dark": "#4E565E",
+    "mid": "#8C949C",
+    "light": "#C4CAD1",
+    "paper": "#E8EEF4",
+}
+
+
+def project_sequential_cmap() -> LinearSegmentedColormap:
+    """返回与项目色板一致的连续色图，不修改 matplotlib 全局注册表。"""
+    return LinearSegmentedColormap.from_list(
+        "project_purple_blue",
+        ["#FFFFFF", "#C2E0EE", "#DBC4ED", "#C68DC0", "#776B97", "#4F587D"],
+    )
 
 _COMMON = {
     "figure.dpi": 150,
@@ -43,7 +56,11 @@ _COMMON = {
     "grid.alpha": 0.25,
     "grid.linewidth": 0.5,
     "legend.frameon": False,
-    "axes.prop_cycle": plt.cycler(color=OKABE_ITO[1:]),
+    "axes.prop_cycle": plt.cycler(color=PROJECT_COLORS),
+    "text.color": NEUTRAL_COLORS["ink"],
+    "axes.labelcolor": NEUTRAL_COLORS["ink"],
+    "xtick.color": NEUTRAL_COLORS["dark"],
+    "ytick.color": NEUTRAL_COLORS["dark"],
 }
 
 _PRESETS = {
@@ -116,7 +133,11 @@ def save_figure(
     if manifest is not None:
         mf = Path(manifest)
         mf.parent.mkdir(parents=True, exist_ok=True)
-        record = {"figure": str(stem), "formats": list(formats), "preset": mpl.rcParams.get("font.family", "")}
+        record = {
+            "figure": str(stem),
+            "formats": list(formats),
+            "preset": mpl.rcParams.get("font.family", ""),
+        }
         with mf.open("a", encoding="utf-8") as f:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
     return written

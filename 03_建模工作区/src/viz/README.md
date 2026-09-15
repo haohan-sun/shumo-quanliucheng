@@ -2,7 +2,7 @@
 
 本文件仅为实现说明；唯一视觉规范源是 `90_工具与配置/configs/VISUAL_STYLE_GUIDE.md`。
 
-可运行、色盲安全、论文级图表模板。7/7 模板通过冒烟测试（`tests/test_viz_templates.py`）。
+可运行、可复现、论文级图表模板。10 个模板由 `tests/test_viz_templates.py` 做冒烟测试。
 
 ## 快速开始
 
@@ -28,6 +28,9 @@ save_figure(fig, "03_建模工作区/figures/fig3_error_comparison", formats=("p
 | `sensitivity_tornado` | 单因素灵敏度（龙卷风图） |
 | `pareto_front` | 多目标优化 Pareto 前沿 |
 | `network_graph` | 图论/网络拓扑（需 networkx，未装自动跳过） |
+| `uncertainty_band` | 中心估计与置信/可信/预测/情景区间 |
+| `observed_vs_predicted` | 观测—预测一致性与等值参考线 |
+| `distribution_ecdf` | 随机运行总体、分布与尾部比较 |
 
 ## 使用规则（与 CODE_STYLE.md 一致）
 
@@ -42,4 +45,5 @@ save_figure(fig, "03_建模工作区/figures/fig3_error_comparison", formats=("p
 - [SciencePlots](https://github.com/garrettj403/SciencePlots)：`science`/`ieee`/`nature`
   风格基准（本库 `paper` 预设对标其无 LaTeX 版效果）。如需其原生样式：
   `uv pip install SciencePlots` 后 `plt.style.use(["science","no-latex"])`。
-- `90_工具与配置/third_party/references/figures4papers/`：顶刊成品图参考集。
+- 图形选择、验收与溯源流程见 `mm-scientific-visualization` 的
+  `references/scientific-figure-workflow.md`。

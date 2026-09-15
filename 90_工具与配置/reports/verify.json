@@ -1,0 +1,8 @@
+{
+  "$schema": "../schemas/verify.schema.json",
+  "schema_version": "1.0",
+  "status": "pending",
+  "verified_at": null,
+  "checks": [],
+  "notes": "Independent final verification has not been performed for a contest submission."
+}

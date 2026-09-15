@@ -18,6 +18,58 @@
 - 证据链：重要数字可以追溯到输入、代码、配置、运行记录和输出哈希。
 - 通用论文流程与 CUMCM 专项写作/评审并存；专项规则始终服从当届官方文件。
 
+## 22 个 Skills 功能
+
+| Skill | 功能 |
+| --- | --- |
+| `mm-orchestrator` | 读取项目状态，识别当前阶段，选择主 Skill、Agent 与复核链，并汇总结果。 |
+| `mm-preflight` | 盘点输入、环境、依赖、状态文件和阶段就绪度，发现缺件与陈旧状态。 |
+| `mm-evidence-retrieval` | 检索附件、公开数据、事实和参数依据，形成可追溯的 Evidence Passport。 |
+| `mm-literature-integrity` | 核验论文身份、DOI、出处、许可证及“来源是否真正支持主张”。 |
+| `mm-problem-analysis` | 拆分子问题、任务类型、变量、目标、约束、单位、假设和验收条件。 |
+| `mm-data-audit` | 检查字段、类型、缺失、重复、异常、单位、泄漏、时空顺序及预处理边界。 |
+| `mm-route-tournament` | 在已提出的候选建模路线间按统一指标比较，列出风险、失败条件与快速试验。 |
+| `mm-mathematical-derivation` | 从已选路线推导符号、方程、目标、约束、初边值与适用条件，并做量纲和极限检查。 |
+| `mm-model-spec` | 把数学定义固化为实现可读的权威 `MODEL_SPEC`，管理规格变更。 |
+| `mm-solver-strategy` | 根据问题结构安排解析解、LP/QP、凸优化、MILP/MINLP、启发式等求解组合。 |
+| `mm-implementation` | 按冻结规格建立首个可测试基线，并维护方程到代码的映射。 |
+| `mm-experiment-optimization` | 做参数搜索、求解器比较、消融、性能基准、灵敏度与稳健性实验。 |
+| `mm-validation-uq` | 检验泛化、校准、残差、压力情景、敏感性和不确定性量化。 |
+| `mm-reproducibility` | 记录 run ID、Git 状态、输入/输出哈希、配置、随机种子、依赖与复现命令。 |
+| `mm-result-audit` | 独立审计结果一致性、约束满足、潜在 bug、来源链和复现证据。 |
+| `mm-scientific-visualization` | 以科学主张为起点建立 Figure Contract，生成可复现图、矢量文件和 manifest。 |
+| `mm-paper-writing` | 只依据已注册证据起草、改写和润色摘要、模型、结果、讨论等论文部分。 |
+| `mm-cumcm-paper-writing-review` | 提供 CUMCM 专项摘要、结构、自查、证据化评审及 PDF 文本提取流程。 |
+| `mm-paper-defense` | 核对论文、模型、结果、图表和代码的一致性，并生成答辩问题与局限清单。 |
+| `mm-compliance` | 检查匿名、控制号、官方格式、文件限制、支撑材料、AI 声明和提交就绪度。 |
+| `mm-ai-provenance` | 以精简类别记录对成果有实质影响的 AI 使用，不暴露隐藏推理过程。 |
+| `context-optimization` | 控制上下文预算、检索范围和长输出，降低重复读取与无效 token 消耗。 |
+
+## 11 个 Agents 功能
+
+| Agent | 权限与职责 |
+| --- | --- |
+| `researcher` | 只读；负责附件、数据、文献、参数和方法来源调查。 |
+| `critic` | 只读；对路线、假设、可识别性、数据充分性和失败条件做对抗性检查。 |
+| `judge` | 只读；在候选路线及既定评分标准内独立排序，不自行发明路线。 |
+| `deriver` | 写入模型推导；把已选路线展开为可审计数学推导，不改实现和冻结规格。 |
+| `implementer` | 写入首个基线、测试和方程—代码映射；同一工件保持唯一写者。 |
+| `optimizer` | 写入优化、实验、消融、基准和 UQ 运行；不为追指标擅改数学问题。 |
+| `validator` | 只读；挑战泛化、稳健性、泄漏、过拟合、校准和统计有效性。 |
+| `replicator` | 只读；依照清单、哈希和容差独立判定 `REPLICATED/MISMATCH/NOT_RUNNABLE`。 |
+| `visualizer` | 写入正式图、渲染代码、Figure Contract 和图表 manifest。 |
+| `reviewer` | 只读；独立复核代码、实验、结果、图表、论文、引用和可复现性。 |
+| `compliance` | 只读；按官方规则做匿名、格式、文件、披露和支撑材料预检。 |
+
+## 配置、模板与脚本
+
+- `90_工具与配置/configs/auto-routing.yaml` 是自然语言意图到 Skill/Agent 的权威路由表。
+- `run.ps1 status|validate|verify|package` 统一执行状态、契约校验、结构检查与提交打包。
+- `schemas/` 定义项目状态、运行记录、模型规格和图表清单等机器可校验结构。
+- `templates/` 提供决策、模型、实验、Figure Contract、论文与合规清单模板。
+- `evals/` 与 `tests/` 检查路由、角色边界、工件状态、打包安全和绘图模板。
+- `.agents/`、`.codex/` 是客户端发现入口；权威镜像保存在 `90_工具与配置/`。
+
 ## 标准流程
 
 ```text
