@@ -291,6 +291,32 @@ def test_demo_records_the_resolved_interpreter():
     assert "resolve_python()" in text
 
 
+def test_doctor_recognises_the_active_project_environment():
+    """`doctor` must not report the project environment as inactive.
+
+    `validate` starts child processes, and a child that was launched through a
+    resolved interpreter path reports the *base* ``sys.prefix``. A false negative
+    here made the validation step fail on Linux CI.
+    """
+    from scripts.doctor import project_venv_active
+
+    assert project_venv_active() is True
+
+
+def test_subprocess_scripts_keep_the_virtual_environment(monkeypatch):
+    """Spawned helpers must use sys.executable, not a resolved path.
+
+    Resolving the interpreter drops the venv from sys.prefix inside the child,
+    which is what made `doctor` fail when `validate` was changed to resolve it.
+    """
+    for name in ("validate.py", "verify.py", "lifecycle_hooks.py"):
+        text = (SCRIPTS / name).read_text(encoding="utf-8")
+        assert "sys.executable" in text, f"{name} should start children with sys.executable"
+        assert "resolve_python()" not in text, (
+            f"{name} must not resolve the interpreter for subprocesses"
+        )
+
+
 # --------------------------------------------------------------------------
 # bootstrap
 # --------------------------------------------------------------------------

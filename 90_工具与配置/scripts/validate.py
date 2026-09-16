@@ -5,11 +5,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-if __package__ in {None, ""}:
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from scripts._project import resolve_python
-
 TOOLS_ROOT = Path(__file__).resolve().parents[1]
 ROOT = TOOLS_ROOT.parent
 
@@ -19,7 +14,10 @@ def main() -> int:
     parser.add_argument("--with-tests", action="store_true")
     parser.add_argument("--submission", action="store_true")
     args = parser.parse_args()
-    python = resolve_python()
+    # Child processes must be started with sys.executable so the virtual
+    # environment stays active (resolving the path would drop sys.prefix and make
+    # `doctor` report the project environment as inactive).
+    python = sys.executable
     commands = [
         [python, str(TOOLS_ROOT / "scripts" / "doctor.py")],
         [python, str(TOOLS_ROOT / "scripts" / "verify_structure.py")],

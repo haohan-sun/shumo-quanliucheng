@@ -36,7 +36,7 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from scripts._project import ROOT, TOOLS_ROOT, dump_json, load_json, resolve_python
+from scripts._project import ROOT, TOOLS_ROOT, dump_json, load_json
 
 REPORT_PATH = TOOLS_ROOT / "reports" / "verify-run.json"
 PASS = "pass"
@@ -179,8 +179,9 @@ def _check_package_boundary(root: Path) -> list[str]:
 
 
 def _check_tests(root: Path) -> tuple[str, list[str]]:
+    # sys.executable keeps the project virtual environment active for the child.
     result = subprocess.run(
-        [resolve_python(), "-m", "pytest", "-q"],
+        [sys.executable, "-m", "pytest", "-q"],
         cwd=root,
         capture_output=True,
         text=True,

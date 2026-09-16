@@ -4,6 +4,7 @@ import argparse
 import importlib
 import importlib.metadata
 import json
+import os
 import platform
 import shutil
 import sys
@@ -60,10 +61,41 @@ def _command_path(name: str) -> str | None:
     return None
 
 
+def project_venv_active() -> bool:
+    """True when this process actually runs from the project's virtual environment.
+
+    ``sys.prefix`` is the primary signal, but it is not sufficient: a caller that
+    starts a child with a *resolved* interpreter path still runs with the base
+    prefix.  The fallbacks therefore prove the interpreter is the project's own —
+    by resolving ``sys.executable`` into the environment, or by matching the
+    environment's recorded base prefix — rather than merely observing that a
+    ``.venv`` directory exists on disk.  A false negative here made `validate`
+    fail on Linux CI.
+    """
+    expected = (ROOT / ".venv").resolve()
+    if Path(sys.prefix).resolve() == expected:
+        return True
+    if Path(sys.executable).resolve().is_relative_to(expected):
+        return True
+    declared = os.environ.get("VIRTUAL_ENV")
+    if declared and Path(declared).resolve() == expected:
+        return True
+    config = ROOT / ".venv" / "pyvenv.cfg"
+    if config.is_file():
+        try:
+            for line in config.read_text(encoding="utf-8").splitlines():
+                key, separator, value = line.partition("=")
+                if separator and key.strip() == "home":
+                    if Path(value.strip()).resolve() == Path(sys.base_prefix).resolve():
+                        return True
+        except OSError:
+            return False
+    return False
+
+
 def inspect_environment() -> dict[str, object]:
     python_ok = (3, 11) <= sys.version_info[:2] < (3, 14)
-    expected_venv = (ROOT / ".venv").resolve()
-    active_venv = Path(sys.prefix).resolve() == expected_venv
+    active_venv = project_venv_active()
     modules: dict[str, dict[str, object]] = {}
     for module, distribution in REQUIRED_MODULES.items():
         try:
