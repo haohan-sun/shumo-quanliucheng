@@ -17,6 +17,13 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Force UTF-8 streams. GitHub's Windows runners use a cp1252 console, and this
+  # repository legitimately prints non-ASCII paths (90_工具与配置), which would
+  # otherwise raise UnicodeEncodeError.
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: "utf-8"
+
 jobs:
   checks:
     name: ${{ matrix.os }} / Python ${{ matrix.python }}
@@ -42,7 +49,7 @@ jobs:
 
       - name: Lint (ruff)
         shell: pwsh
-        run: ./.venv/Scripts/python.exe -m ruff check .
+        run: ./run.ps1 lint
 
       - name: CLI help is reachable
         shell: pwsh

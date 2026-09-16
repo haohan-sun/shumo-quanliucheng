@@ -69,6 +69,10 @@ if (-not $python) {
 
 $env:UV_CACHE_DIR = Join-Path $toolsRoot '.cache\uv'
 $env:PYTHONDONTWRITEBYTECODE = '1'
+# Force UTF-8 streams: this repository prints non-ASCII paths, and a cp1252
+# console (default on some CI runners) would raise UnicodeEncodeError.
+$env:PYTHONUTF8 = '1'
+$env:PYTHONIOENCODING = 'utf-8'
 # Keep UTF-8 output intact on Windows PowerShell 5.1 consoles.
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
 

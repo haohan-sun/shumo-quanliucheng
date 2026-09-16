@@ -158,6 +158,7 @@ claim registry → 只引用已登记数字的论文片段。全部产物都在
 | `run.ps1 status` | 项目状态、阶段、Gate 与产物计数 |
 | `run.ps1 validate` | 结构检查 + 契约校验 |
 | `run.ps1 test` | 运行 pytest 测试套件 |
+| `run.ps1 lint` | 按仓库配置运行 ruff（`--fix` / `--format`） |
 | `run.ps1 verify` | 确定性验证全链路（结构/契约/Gate/失效/主张/AI 溯源/合规/打包边界） |
 | `run.ps1 package` | 通过完整守卫链检查或构建提交包 |
 | `run.ps1 clean` | 清理可再生的缓存（绝不删除 tracked 文件） |
@@ -229,7 +230,7 @@ examples/toy_demo/   最小端到端示例（合成数据）
 
 ```powershell
 .\setup.ps1 -Ci -NoDoctor
-.\.venv\Scripts\python.exe -m ruff check .
+.\run.ps1 lint
 .\run.ps1 test
 .\run.ps1 verify
 .\run.ps1 validate

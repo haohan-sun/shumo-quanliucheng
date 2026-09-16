@@ -29,6 +29,7 @@ DOCUMENTED_COMMANDS = (
     "status",
     "validate",
     "test",
+    "lint",
     "verify",
     "package",
     "clean",

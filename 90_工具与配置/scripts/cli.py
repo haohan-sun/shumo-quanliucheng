@@ -53,6 +53,7 @@ DOCUMENTED_COMMANDS = (
     "status",
     "validate",
     "test",
+    "lint",
     "verify",
     "package",
     "clean",
@@ -124,6 +125,22 @@ def cmd_test(args: argparse.Namespace) -> int:
     python = _require_python()
     return subprocess.run(
         [str(python), "-m", "pytest", *args.pytest_args], cwd=ROOT, check=False
+    ).returncode
+
+
+def cmd_lint(args: argparse.Namespace) -> int:
+    """Run ruff with this repository's configuration."""
+    python = _require_python()
+    if args.fix:
+        return subprocess.run(
+            [str(python), "-m", "ruff", "check", ".", "--fix"], cwd=ROOT, check=False
+        ).returncode
+    if args.format:
+        return subprocess.run(
+            [str(python), "-m", "ruff", "format", "--check", "."], cwd=ROOT, check=False
+        ).returncode
+    return subprocess.run(
+        [str(python), "-m", "ruff", "check", "."], cwd=ROOT, check=False
     ).returncode
 
 
@@ -386,6 +403,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     test = add("test", cmd_test, "Run the pytest suite.")
     test.add_argument("pytest_args", nargs=argparse.REMAINDER, help="Extra arguments for pytest.")
+
+    lint = add("lint", cmd_lint, "Run ruff with the repository configuration.")
+    lint.add_argument("--fix", action="store_true", help="Apply ruff's safe fixes.")
+    lint.add_argument("--format", action="store_true", help="Check formatting instead of linting.")
 
     verify = add(
         "verify",

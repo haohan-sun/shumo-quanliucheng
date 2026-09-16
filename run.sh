@@ -34,6 +34,9 @@ fi
 
 export UV_CACHE_DIR="${UV_CACHE_DIR:-$script_dir/$tools_root/.cache/uv}"
 export PYTHONDONTWRITEBYTECODE=1
+# Force UTF-8 streams: this repository prints non-ASCII paths.
+export PYTHONUTF8=1
+export PYTHONIOENCODING=utf-8
 
 if [ "$#" -eq 0 ]; then
     exec "$python" "$tools_root/scripts/cli.py" help
