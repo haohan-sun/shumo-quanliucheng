@@ -31,7 +31,7 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from scripts._project import ROOT, TOOLS_ROOT, dump_json, load_json
+from scripts._project import ROOT, TOOLS_ROOT, load_json
 
 REPORT_PATH = TOOLS_ROOT / "reports" / "verify.json"
 SCHEMA_PATH = TOOLS_ROOT / "schemas" / "verify.schema.json"
@@ -106,6 +106,38 @@ def pending_report() -> dict[str, object]:
         "checks": [],
         "notes": "Independent final verification has not been performed for a contest submission.",
     }
+
+
+def project_newline() -> str:
+    """The project's own line-ending convention, so writes match the checkout.
+
+    Deriving it from a stable, tracked reference file - not from the artifact
+    being rewritten - keeps `record` and `reset` consistent with each other even
+    after several round trips.  A Windows checkout normalised by git uses CRLF;
+    a Linux checkout uses LF.  CI on Windows caught the mismatch.
+    """
+    references = [ROOT / "pyproject.toml"]
+    schemas = sorted((TOOLS_ROOT / "schemas").glob("*.schema.json"))
+    if schemas:
+        references.append(schemas[0])
+    references.append(TOOLS_ROOT / "configs" / "workspace-layout.yaml")
+    for path in references:
+        if not path.is_file():
+            continue
+        data = path.read_bytes()
+        if b"\r\n" in data:
+            return "\r\n"
+        if b"\n" in data:
+            return "\n"
+    return "\n"
+
+
+def _write_report_text(text: str) -> None:
+    """Write the report with the project's newline style, byte for byte."""
+    newline = project_newline()
+    payload = text if newline == "\n" else text.replace("\n", newline)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_bytes(payload.encode("utf-8"))
 
 
 def load_report() -> dict[str, object]:
@@ -191,18 +223,19 @@ def record(
         raise ReviewError(
             "cannot record 'verified' while a check is not 'pass'; use --reject instead"
         )
-    dump_json(REPORT_PATH, report)
+    _write_report_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
     return report
 
 
 def reset() -> dict[str, object]:
-    """Return the report to its shipped pending state.
+    """Return the report to its shipped pending state, byte for byte.
 
-    Written as the exact original text with an explicit newline so that resetting
-    leaves the repository clean instead of introducing a cosmetic diff.
+    The pending report is written with the project's newline style, so on a
+    Windows checkout normalised to CRLF the reset restores the file exactly
+    instead of leaving a spurious diff.  (CI caught this: Linux passed, Windows
+    did not.)
     """
-    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    REPORT_PATH.write_text(PENDING_TEMPLATE, encoding="utf-8", newline="")
+    _write_report_text(PENDING_TEMPLATE)
     return pending_report()
 
 

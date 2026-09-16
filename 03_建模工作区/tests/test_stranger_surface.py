@@ -597,3 +597,43 @@ def test_final_review_status_is_reflected_in_the_gate_report():
     assert "g7_approved" in facts
     # Recording a verification never approves G7 by itself.
     assert facts["g7_approved"] is False
+
+
+@pytest.mark.parametrize("newline", ["\n", "\r\n"])
+def test_final_review_reset_preserves_the_checkout_newline_style(newline):
+    """Reset must be byte-exact whatever the project's newline convention is.
+
+    Windows CI caught this: always writing LF left a spurious diff on a checkout
+    where git had normalised the report to CRLF. Both the recorded report and the
+    pending report are written with the project's own convention, which is derived
+    from a tracked reference file rather than from the artifact being rewritten.
+    """
+    report_path = TOOLS / "reports" / "verify.json"
+    before = report_path.read_bytes()
+    canonical = before.replace(b"\r\n", b"\n")
+    from scripts import final_review
+
+    expected_newline = "\r\n" if newline == "\r\n" else "\n"
+    try:
+        # Simulate a checkout with this convention by pointing the detector at a
+        # matching reference file.
+        reference = ROOT / "pyproject.toml"
+        reference_before = reference.read_bytes()
+        canonical_reference = reference_before.replace(b"\r\n", b"\n")
+        reference.write_bytes(canonical_reference.replace(b"\n", expected_newline.encode()))
+        try:
+            assert final_review.project_newline() == expected_newline
+            final_review.record(
+                reviewer="Prof. Li",
+                note="independent review",
+                checks=[{"check_id": "chain", "status": "pass", "evidence": [], "notes": ""}],
+                accept=True,
+            )
+            final_review.reset()
+            restored = report_path.read_bytes()
+            assert b"\r\n" in restored if newline == "\r\n" else b"\r\n" not in restored
+            assert restored.replace(b"\r\n", b"\n") == canonical
+        finally:
+            reference.write_bytes(reference_before)
+    finally:
+        report_path.write_bytes(before)
