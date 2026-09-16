@@ -25,6 +25,13 @@ from scripts._project import dump_json, load_json
 from scripts.artifact_state import GATE_DEPENDENCIES, recover, resolve_artifact, snapshot
 from scripts.auto_route import EXPECTED_GATES, gate_inventory_errors, gate_records, valid_human_gate
 from scripts.route_tree import load_tree, tree_fingerprint
+from scripts.workflow_mode import (
+    ModeError,
+    current_mode,
+    gate_requirement,
+    requires_artifact_binding,
+    requires_snapshot,
+)
 
 AI_IDENTITIES = {
     "ai", "agent", "codex", "chatgpt", "llm", "model", "orchestrator",
@@ -105,7 +112,13 @@ def _stage_snapshot(stage: dict[str, Any]) -> dict[str, Any]:
 
 def _replace_pair(manifest_path: Path, manifest: dict[str, Any], state_path: Path,
                   staged_state: Path) -> None:
-    """Best-effort two-file transaction with rollback on replacement failure."""
+    """Best-effort two-file transaction with rollback on replacement failure.
+
+    ``staged_state`` may not exist: a Gate that only needs a human decision (the
+    lightweight ``confirm`` tier) records nothing in the snapshot store, so the
+    call is a plain manifest write. Rollback then just removes the state file it
+    did not create.
+    """
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary_name = tempfile.mkstemp(prefix=manifest_path.name + ".", suffix=".tmp",
                                            dir=manifest_path.parent)
@@ -114,16 +127,20 @@ def _replace_pair(manifest_path: Path, manifest: dict[str, Any], state_path: Pat
     staged_manifest.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     old_manifest = manifest_path.read_bytes()
     old_state = state_path.read_bytes() if state_path.exists() else None
+    state_replaced = False
     try:
-        state_path.parent.mkdir(parents=True, exist_ok=True)
-        os.replace(staged_state, state_path)
+        if staged_state.exists():
+            state_path.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(staged_state, state_path)
+            state_replaced = True
         os.replace(staged_manifest, manifest_path)
     except Exception:
         manifest_path.write_bytes(old_manifest)
-        if old_state is None:
-            state_path.unlink(missing_ok=True)
-        else:
-            state_path.write_bytes(old_state)
+        if state_replaced:
+            if old_state is None:
+                state_path.unlink(missing_ok=True)
+            else:
+                state_path.write_bytes(old_state)
         raise
     finally:
         staged_manifest.unlink(missing_ok=True)
@@ -180,13 +197,33 @@ def approve_gate(
     approved_at = _timestamp_after_prior(records, gate)
     if stage.get("approved_at") or stage.get("approved_by"):
         stage.setdefault("approval_history", []).append(_stage_snapshot(stage))
+    # The active workflow mode decides how much ceremony this Gate needs.  It is
+    # read relative to the project being modified, not relative to the installed
+    # scripts, so an isolated workspace uses its own setting.  The mode is recorded
+    # with the decision; it never supplies or substitutes a human approval.  A
+    # broken mode configuration falls back to the strictest tier instead of
+    # failing open, so a damaged config can never make a Gate easier to pass.
+    mode_path = root / "90_工具与配置/configs/workflow-mode.txt"
+    try:
+        active_mode = current_mode(mode_path)
+        requirement = gate_requirement(gate, active_mode)
+    except ModeError as error:
+        print(f"gate_control: workflow mode unusable ({error}); assuming 'research'", file=sys.stderr)
+        active_mode, requirement = "research", "required"
     stage.update(status="approved", approved_by=approver, approved_at=approved_at,
-                 approval_note=note, **bindings)
+                 approval_note=note, workflow_mode=active_mode,
+                 workflow_requirement=requirement, **bindings)
 
     state_path = root / "90_工具与配置/state/artifact_snapshots.json"
+    bind_artifacts = requires_artifact_binding(gate, active_mode)
     for dependency in GATE_DEPENDENCIES[gate]:
-        if not resolve_artifact(dependency, root).exists():
+        target = resolve_artifact(dependency, root)
+        if bind_artifacts and not target.exists():
             raise FileNotFoundError(f"required Gate artifact is missing: {dependency}")
+        if not bind_artifacts and not target.exists():
+            # A lightweight Gate still reports what it could not bind, so the
+            # lighter mode is visible in the record instead of silent.
+            stage.setdefault("unbound_dependencies", []).append(dependency)
     staged_state = state_path.with_name(state_path.name + f".{os.getpid()}.staged")
     staged_state.unlink(missing_ok=True)
     approval_record = f"{approver} at {approved_at}"
@@ -194,11 +231,17 @@ def approve_gate(
         staged_state.parent.mkdir(parents=True, exist_ok=True)
         staged_state.write_bytes(state_path.read_bytes())
     try:
-        if state_path.exists() and gate in load_json(state_path).get("snapshots", {}):
+        if not requires_snapshot(gate, active_mode):
+            # ``confirm`` (and any future lighter tier) records the human
+            # decision without demanding a full artifact snapshot.  Existing
+            # snapshots are left untouched.
+            _replace_pair(manifest_path, manifest, state_path, staged_state)
+        elif state_path.exists() and gate in load_json(state_path).get("snapshots", {}):
             recover(gate, path=staged_state, root=root, human_approval=approval_record)
+            _replace_pair(manifest_path, manifest, state_path, staged_state)
         else:
             snapshot(gate, path=staged_state, root=root, human_approval=approval_record)
-        _replace_pair(manifest_path, manifest, state_path, staged_state)
+            _replace_pair(manifest_path, manifest, state_path, staged_state)
     finally:
         staged_state.unlink(missing_ok=True)
     return deepcopy(stage)
@@ -230,14 +273,27 @@ def revoke_gate(manifest_path: Path, gate: str, *, revoked_by: str, reason: str)
 
 
 def gate_status(manifest_path: Path) -> dict[str, Any]:
-    manifest = _validated_manifest(manifest_path.resolve())
+    manifest_path = manifest_path.resolve()
+    root = _root_for(manifest_path)
+    manifest = _validated_manifest(manifest_path)
     records = gate_records(manifest)
-    return {gate: {
-        "status": records[gate].get("status"),
-        "approved_by": records[gate].get("approved_by"),
-        "approved_at": records[gate].get("approved_at"),
-        "valid_human_approval": valid_human_gate(manifest, gate),
-    } for gate in EXPECTED_GATES}
+    try:
+        active_mode = current_mode(root / "90_工具与配置/configs/workflow-mode.txt")
+    except ModeError:
+        active_mode = "research"
+    status: dict[str, Any] = {
+        "_workflow_mode": active_mode,
+        "_requirements": {gate: gate_requirement(gate, active_mode) for gate in EXPECTED_GATES},
+    }
+    for gate in EXPECTED_GATES:
+        status[gate] = {
+            "status": records[gate].get("status"),
+            "approved_by": records[gate].get("approved_by"),
+            "approved_at": records[gate].get("approved_at"),
+            "workflow_requirement": gate_requirement(gate, active_mode),
+            "valid_human_approval": valid_human_gate(manifest, gate),
+        }
+    return status
 
 
 def main() -> int:

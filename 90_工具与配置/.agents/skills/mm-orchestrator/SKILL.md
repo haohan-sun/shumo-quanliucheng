@@ -17,6 +17,32 @@ description: "AUTO TRIGGER: every non-trivial project request, including ambiguo
 
 ## Executable routing and handoffs
 
+For a request that contains more than one job, do not route it as a single task.
+Run the decomposition handoff first:
+
+```
+python 90_工具与配置/scripts/decompose.py "<request>" --json
+```
+
+* `decomposed: false` - the request is atomic; continue with `auto_route.py`
+  exactly as before. This is the path for every simple request, so the common
+  case stays unchanged.
+* `decomposed: true` - dispatch the reported tasks. Each task carries the router
+  decision produced by the unchanged `route_task()`; do not pick a Skill
+  yourself, and do not merge two tasks into one writer.
+* Honour `execution_waves`: tasks in the same wave may run concurrently only when
+  their `writer_scope` differ. Read-only reviewers may always run concurrently.
+* `gate_stops` are Human Gate boundaries. Stop and report; never approve, skip,
+  or reorder a Gate to keep the plan moving.
+* `blocked_prerequisite` lists tasks waiting on an unapproved Gate. Report them
+  as blockers.
+* `errors` (for example a writer-scope conflict) must be reported to the human
+  with the conflicting task ids, and the artifact owner decided explicitly.
+
+Decomposition is a planning step only: it writes no manifest, records no
+approval, and adds no provenance entry of its own.
+
+
 Use `python 90_工具与配置/scripts/auto_route.py "<request>"` to obtain the routing
 decision. This command previews dispatch; it does not spawn agents or run experiments.
 Only `action=route` authorizes its listed execution plan. Pending or artifact-invalidated

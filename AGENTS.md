@@ -11,7 +11,36 @@ For every non-trivial project task:
 - automatically run relevant validation and material-AI provenance checks;
 - do not require manual Skill or Agent invocation unless automatic routing fails;
 - stop at every Human Gate and request an explicit human decision;
-- never auto-approve, infer, or fabricate a Human Gate approval.
+- never auto-approve, infer, or fabricate a Human Gate approval;
+- detect mixed-intent requests and decompose them before routing (see below).
+
+## Mixed-intent decomposition
+
+A single request often contains several independent jobs, for example
+"audit the data, check robustness, and produce the main figure and an abstract
+draft".  `auto-routing.yaml` deliberately returns exactly one primary functional
+Skill per request, so a mixed request would silently lose part of its intent.
+
+Before routing a request that contains more than one job:
+
+1. run `python 90_工具与配置/scripts/decompose.py "<request>" --json`;
+2. if `decomposed` is `false`, the request is atomic: route it with the
+   deterministic router exactly as before;
+3. if `decomposed` is `true`, treat the plan as the dispatch list. Each task
+   already carries its own `auto_route.route_task()` decision - never substitute
+   a Skill of your own choosing;
+4. execute the tasks in the reported dependency order, keeping one writer per
+   artifact. Tasks in the same wave may run in parallel only when their
+   `writer_scope` values differ; read-only reviewers may always run in parallel;
+5. stop at every `gate_stops` entry and report every `blocked_prerequisite`
+   instead of working around it. Decomposition never approves, skips, or
+   reorders a Human Gate;
+6. if the plan reports `errors` (for example a writer-scope conflict), report the
+   conflict and ask which task should own the artifact. Do not guess.
+
+A request with no curated keyword is routed verbatim by the same router, so an
+unfamiliar phrasing degrades to the existing single-task behaviour rather than
+being dropped or invented.
 
 Simple navigation, literal file lookup, and one-line status questions do not require specialist
 routing. All modeling, evidence, implementation, experiment, visualization, audit, paper, and

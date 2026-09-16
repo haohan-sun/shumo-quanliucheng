@@ -122,14 +122,24 @@ def validate_config(data: dict) -> list[str]:
 
 
 def current_mode(path: Path = MODE_FILE) -> str:
-    """Active mode: ``configs/workflow-mode.txt`` when present, else the default."""
+    """Active mode: ``configs/workflow-mode.txt`` when present, else the default.
+
+    The file is a small tracked text file so a team can see which mode is in
+    force in the repository itself. Comment lines starting with ``#`` are
+    ignored, so it can carry its own explanation.
+    """
     data = load_modes()
     default = str(data.get("default_mode", "research"))
     if not path.is_file():
         return default
-    value = path.read_text(encoding="utf-8").strip()
-    if not value:
+    lines = [
+        line.strip()
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    if not lines:
         return default
+    value = lines[-1]
     if value not in (data.get("modes") or {}):
         raise ModeError(
             f"{path.as_posix()} selects unknown mode {value!r}; "
@@ -147,11 +157,60 @@ def mode_config(mode: str | None = None) -> dict:
     return data["modes"][selected]
 
 
+def set_mode(mode: str, path: Path = MODE_FILE) -> str:
+    """Persist the active mode.  Never touches Gate records.
+
+    Switching mode changes how much ceremony a Gate requires; it does not
+    approve, revoke, or reinterpret any recorded decision.  An existing approval
+    that was recorded under a stricter mode stays valid, because the stricter
+    evidence is a superset of what the lighter mode asks for.
+    """
+    data = load_modes()
+    errors = validate_config(data)
+    if errors:
+        raise ModeError("; ".join(errors))
+    available = sorted(data.get("modes") or {})
+    if mode not in available:
+        raise ModeError(f"unknown mode {mode!r}; available: {', '.join(available)}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "# Active workflow mode; written by `run.ps1 modes set <mode>`.\n"
+        "# Delete this file to fall back to default_mode in workflow-modes.yaml.\n"
+        f"{mode}\n",
+        encoding="utf-8",
+    )
+    return mode
+
+
 def gate_requirement(gate: str, mode: str | None = None) -> str:
     if gate not in GATES:
         raise ModeError(f"unknown gate {gate!r}; expected one of {', '.join(GATES)}")
     config = mode_config(mode)
     return str(config["gates"][gate]["requirement"])
+
+
+def gate_tier(gate: str, mode: str | None = None) -> str:
+    """Alias kept explicit for callers that read better as 'tier'."""
+    return gate_requirement(gate, mode)
+
+
+def requires_artifact_binding(gate: str, mode: str | None = None) -> bool:
+    """True when this Gate must bind and verify its dependency artifacts.
+
+    ``required`` Gates keep the full behaviour: every dependency must exist and is
+    snapshotted.  ``confirm`` Gates still need an explicit human decision, but are
+    deliberately lighter, so their dependencies only need to exist.  ``check``
+    Gates carry no approval at all.
+    """
+    return gate_requirement(gate, mode) == "required"
+
+
+def requires_snapshot(gate: str, mode: str | None = None) -> bool:
+    return gate_requirement(gate, mode) == "required"
+
+
+def is_human_decision(gate: str, mode: str | None = None) -> bool:
+    return gate_requirement(gate, mode) in HUMAN_TIERS
 
 
 def required_gates(mode: str | None = None) -> list[str]:
@@ -169,19 +228,23 @@ def describe(mode: str | None = None) -> str:
     selected = mode or current_mode()
     lines = [
         f"workflow mode: {selected} ({config.get('display_name', selected)})",
+        f"active mode:   {current_mode()}",
         "",
     ]
     for gate in GATES:
         spec = config["gates"][gate]
-        lines.append(f"  {gate}  {spec['requirement']:<8} {spec.get('stage', '')}")
+        marker = "" if selected == current_mode() else "  (not active)"
+        lines.append(f"  {gate}  {spec['requirement']:<8} {spec.get('stage', '')}{marker}")
     lines.extend(
         [
             "",
-            "  required = full human approval with artifact binding",
-            "  confirm  = explicit human approval, lightweight note",
+            "  required = full human approval with artifact binding and snapshot",
+            "  confirm  = explicit human approval, lightweight (no snapshot required)",
             "  check    = deterministic check only, never an approval",
             "",
             "  No mode lets automation approve a Gate; G7 is always a human decision.",
+            "  This command only inspects. To change the active mode use:",
+            "    run.ps1 modes set <mode>",
         ]
     )
     return "\n".join(lines)
@@ -189,8 +252,15 @@ def describe(mode: str | None = None) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Inspect or validate the workflow mode (research | competition)."
+        description=(
+            "Inspect, validate, or set the workflow mode. `set` changes how much "
+            "ceremony each Human Gate requires; it never edits a Gate record."
+        )
     )
+    sub = parser.add_subparsers(dest="command")
+    sub.add_parser("show", help="Show the active mode and every Gate requirement.")
+    setter = sub.add_parser("set", help="Set the active workflow mode.")
+    setter.add_argument("mode", choices=["research", "competition"])
     parser.add_argument("--mode", choices=["research", "competition"], help="Inspect a specific mode.")
     parser.add_argument("--validate", action="store_true", help="Validate the configuration only.")
     parser.add_argument("--json", action="store_true", help="Print machine-readable output.")
@@ -209,6 +279,17 @@ def main() -> int:
         return 1
     if args.validate:
         print("workflow mode: PASS")
+        return 0
+    if args.command == "set":
+        try:
+            previous = current_mode()
+            selected = set_mode(args.mode)
+        except ModeError as error:
+            print(f"workflow mode: FAIL\n  {error}", file=sys.stderr)
+            return 2
+        print(f"workflow mode: {previous} -> {selected}")
+        print("Gate records were not modified.")
+        print(describe(selected))
         return 0
     if args.json:
         import json

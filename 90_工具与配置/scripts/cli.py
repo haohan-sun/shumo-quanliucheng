@@ -61,6 +61,7 @@ DOCUMENTED_COMMANDS = (
     "agents",
     "gates",
     "modes",
+    "final-review",
     "demo",
     "info",
     "route",
@@ -265,13 +266,26 @@ def cmd_gates(args: argparse.Namespace) -> int:
 
 def cmd_modes(args: argparse.Namespace) -> int:
     argv: list[str] = []
-    if args.mode:
+    if getattr(args, "action", None) == "set":
+        argv.extend(["set", args.mode_name])
+    elif getattr(args, "set_mode", None):
+        argv.extend(["set", args.set_mode])
+    elif args.mode:
         argv.extend(["--mode", args.mode])
     if args.validate:
         argv.append("--validate")
     if args.json:
         argv.append("--json")
     return _run_module("workflow_mode.py", argv)
+
+
+def cmd_final_review(args: argparse.Namespace) -> int:
+    argv = list(args.review_args)
+    if argv and argv[0] == "--":
+        argv = argv[1:]
+    if not argv:
+        argv = ["show"]
+    return _run_module("final_review.py", argv)
 
 
 def cmd_demo(args: argparse.Namespace) -> int:
@@ -343,12 +357,15 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "examples:\n"
-            "  ./setup.ps1            create .venv and install dependencies\n"
-            "  ./run.ps1 doctor       check interpreter, dependencies and tools\n"
-            "  ./run.ps1 validate     structure + contract checks\n"
-            "  ./run.ps1 test         run the pytest suite\n"
-            "  ./run.ps1 verify       full deterministic verification (no Gate approval)\n"
-            "  ./run.ps1 package      check submission readiness (BLOCKED until G7)\n"
+            "  ./setup.ps1                    create .venv and install dependencies\n"
+            "  ./run.ps1 setup                same, through the unified CLI\n"
+            "  ./run.ps1 doctor               check interpreter, dependencies and tools\n"
+            "  ./run.ps1 validate             structure + contract checks\n"
+            "  ./run.ps1 test                 run the pytest suite\n"
+            "  ./run.ps1 verify               full deterministic verification (no Gate approval)\n"
+            "  ./run.ps1 package              check submission readiness (BLOCKED until G7)\n"
+            "  ./run.ps1 modes set competition  switch workflow mode (never edits a Gate)\n"
+            "  ./run.ps1 final-review show    show the independent verification record\n"
         ),
     )
     sub = parser.add_subparsers(dest="command", metavar="COMMAND")
@@ -441,11 +458,32 @@ def build_parser() -> argparse.ArgumentParser:
     modes = add(
         "modes",
         cmd_modes,
-        "Inspect research/competition workflow modes (never weakens a Gate decision).",
+        "Inspect or set the research/competition workflow mode (never edits a Gate record).",
     )
     modes.add_argument("--mode", choices=["research", "competition"], help="Inspect one mode.")
+    modes.add_argument(
+        "--set",
+        dest="set_mode",
+        choices=["research", "competition"],
+        help="Set the active workflow mode. Same as 'modes set <mode>'.",
+    )
     modes.add_argument("--validate", action="store_true", help="Validate the mode configuration.")
     modes.add_argument("--json", action="store_true")
+    modes_action = modes.add_subparsers(dest="action")
+    modes_set = modes_action.add_parser("set", help="Set the active workflow mode.")
+    modes_set.add_argument("mode_name", choices=["research", "competition"])
+    modes_action.add_parser("show", help="Show the active mode and every Gate requirement.")
+
+    review = add(
+        "final-review",
+        cmd_final_review,
+        "Record an independent human review of the final verification. Never approves G7.",
+    )
+    review.add_argument(
+        "review_args",
+        nargs=argparse.REMAINDER,
+        help="Arguments for scripts/final_review.py, e.g. show | reset | record ...",
+    )
 
     demo = add("demo", cmd_demo, "Run or re-check the toy end-to-end demo.")
     demo.add_argument(

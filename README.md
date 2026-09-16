@@ -43,11 +43,16 @@ cd shumo-quanliucheng
 `setup` 会自动寻找满足 `requires-python` 的解释器、建立 `.venv`、安装依赖并跑一次
 `doctor`。重复运行是幂等的；解释器换了用 `.\setup.ps1 -ForceRecreate` 重建。
 
+`setup` 是唯一在 `.venv` 还不存在时就能运行的命令：`.\run.ps1 setup`（POSIX 下
+`./run.sh setup`）会在解释器检查之前转发给 `setup.ps1` / `setup.sh`，所以第一次安装
+两条路径都可用。
+
 不想装完整依赖、只想先看结构：
 
 ```powershell
-.\setup.ps1 -DryRun          # 只打印计划，不做任何修改
-.\setup.ps1 -Ci -NoDoctor    # 只装必需依赖，跳过 doctor
+.\run.ps1 setup --dry-run          # 只打印计划，不做任何修改
+.\run.ps1 setup --ci --no-doctor   # 只装必需依赖，跳过 doctor
+.\setup.ps1 -DryRun                # 同样的功能，PowerShell 风格参数
 ```
 
 ## 最小 Demo：一个数字如何走完全程
@@ -138,16 +143,45 @@ claim registry → 只引用已登记数字的论文片段。全部产物都在
   --approved-by "team-lead" --note "数据支持这条路线" --selected-problem "..."
 ```
 
-工作模式决定每个 Gate 的仪式量，但**任何模式都不会削弱 G7，也不会允许自动批准**：
+工作模式决定每个 Gate 的仪式量，但**任何模式都不会削弱 G7，也不会允许自动批准**。
+注意：`modes --mode X` 只是**查看**某个模式的配置，不会切换；切换要用 `modes set`：
 
 ```powershell
 .\run.ps1 modes                          # 查看当前模式与各 Gate 的档次
-.\run.ps1 modes --mode competition       # 限时比赛的轻量配置
+.\run.ps1 modes --mode competition       # 只查看 competition 的配置，不切换
+.\run.ps1 modes set competition          # 真正切换到 competition
+.\run.ps1 modes set research             # 切回默认
 ```
 
-- `research`（默认，向后兼容）：G1–G7 全部 `required`，完整批准记录。
-- `competition`：G1/G2/G3/G5/G7 仍为 `required`，G4 与 G6 降为 `confirm`
-  （仍需具名的人与说明，只是不要求额外产物绑定）。
+- `research`（默认，向后兼容）：G1–G7 全部 `required`，完整批准记录 + 产物快照。
+- `competition`：G1/G2/G3/G5/G7 仍为 `required`（G7 永远不弱化），G4 与 G6 降为
+  `confirm`——仍然需要具名的**人**和说明，只是不再要求产物快照；未能绑定的依赖会写进
+  该 Gate 记录的 `unbound_dependencies`，不会静默略过。
+
+切换模式只改变后续 Gate 需要多少仪式量：不重写任何已有批准记录（更严格模式下记录的
+批准在更轻模式下依然有效，因为它要求的证据是超集）。模式配置损坏时会回落到最严格的
+`research`，绝不会"失败即放行"。当前模式存放在受版本管理的
+`90_工具与配置/configs/workflow-mode.txt`，所以团队能在仓库里看到正在用哪种模式；
+删掉该文件即回落到 `workflow-modes.yaml` 的 `default_mode`。
+
+### 记录独立最终验证
+
+`90_工具与配置/reports/verify.json` 必须由独立复核人具名完成。这是一个窄接口，只负责
+校验并记录**人的结论**；它不会读取机器 `verify` 的结果、也不会替你把确定性检查升级为
+独立验证，更不会批准 G7：
+
+```powershell
+.\run.ps1 final-review show                # 当前记录与 G7 前置条件
+.\run.ps1 final-review record `
+  --reviewer "Prof. Li" `
+  --note "独立复核了结果表、图与主张链" `
+  --check "pass:deterministic_chain:ran verify --with-tests" `
+  --check "pass:figure_hashes"
+.\run.ps1 final-review reset               # 回到 pending
+```
+
+约束是硬性的：`--reviewer` 不能是 AI/自动化身份，`--note` 与至少一条 `--check` 必填，
+存在非 `pass` 的 check 时不允许记为 `verified`（要用 `--reject`）。
 
 ## 命令一览
 
@@ -163,7 +197,8 @@ claim registry → 只引用已登记数字的论文片段。全部产物都在
 | `run.ps1 package` | 通过完整守卫链检查或构建提交包 |
 | `run.ps1 clean` | 清理可再生的缓存（绝不删除 tracked 文件） |
 | `run.ps1 demo` | 运行或复核最小端到端 Demo |
-| `run.ps1 modes` | 查看/校验 research 与 competition 工作模式 |
+| `run.ps1 modes` | 查看/切换 research 与 competition 工作模式（`modes set <mode>`） |
+| `run.ps1 final-review` | 记录/查看独立最终验证结论（`show` / `record` / `reset`） |
 | `run.ps1 plan` | 把复杂请求拆成带依赖的 task DAG |
 | `run.ps1 route` | 单个请求的确定性路由预览 |
 | `run.ps1 gates` | 只读查看 G1–G7 状态 |
@@ -184,15 +219,16 @@ claim registry → 只引用已登记数字的论文片段。全部产物都在
 
 ### 运行前置未就绪时
 
-任何 `run.ps1` 命令在 `.venv` 缺失时都会明确告诉你下一步：
+除 `setup` 之外的任何 `run.ps1` 命令在 `.venv` 缺失时都会明确告诉你下一步：
 
 ```text
 Project Python is missing.
   expected: <repo>\.venv\Scripts\python.exe
 
 Run the setup step first:
-  PowerShell :  .\setup.ps1
-  cmd.exe    :  setup.ps1
+  PowerShell :  .\run.ps1 setup
+  or         :  .\setup.ps1
+  cmd.exe    :  run.ps1 setup
   Git Bash   :  ./setup.sh
 ```
 
@@ -201,10 +237,15 @@ Run the setup step first:
 22 个项目 Skills，覆盖证据检索、文献核验、问题分析、数据审计、路线比较、数学推导、
 MODEL_SPEC、求解策略、实现、优化、验证/UQ、复现、科学制图、论文、合规与上下文治理。
 
-11 个专职 Agents，各自有明确读写边界：`researcher`、`critic`、`judge`、`deriver`
-（写推导）、`implementer`（写基线）、`optimizer`（写实验）、`visualizer`（写图）为写入者，
-`validator`、`replicator`、`reviewer`、`compliance` 为只读复核者。
-同一产物永远只有一个 writer；只读复核可以并行。
+11 个专职 Agents 分两类，读写边界是这个系统的核心安全边界：
+
+- **只读复核者（不写任何产物）**：`researcher`、`critic`、`judge`、`validator`、
+  `replicator`、`reviewer`、`compliance`。它们只返回证据与判断，由父调度器汇总。
+- **写入者（同一产物只有一个）**：`deriver`（写模型推导）、`implementer`（写基线与代码）、
+  `optimizer`（写实验与优化运行）、`visualizer`（写正式图与渲染代码）。
+
+只读复核可以并行；写同一产物时其余 writer 必须等待。`researcher`、`critic`、`judge`
+之所以是只读，是为了让"调查"和"独立评判"不能被写成既成事实。
 
 完整的 22 个 Skill 与 11 个 Agent 功能表见
 [CODEX_CAPABILITIES.md](CODEX_CAPABILITIES.md)；日常操作细节见

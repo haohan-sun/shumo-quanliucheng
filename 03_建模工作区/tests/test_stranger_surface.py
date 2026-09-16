@@ -137,16 +137,23 @@ def test_clean_never_targets_a_tracked_file():
 # --------------------------------------------------------------------------
 # verify / package entry points
 # --------------------------------------------------------------------------
-def test_verify_report_is_never_marked_verified():
+def test_verify_never_writes_the_independent_verification_record():
+    """`verify` proves checks; it must not touch the human-owned record.
+
+    The record's content is the reviewer's business, so this asserts the
+    invariant that matters: a deterministic run leaves the file byte-identical.
+    """
+    before = (TOOLS / "reports" / "verify.json").read_bytes()
     from scripts.verify import run_checks
 
     report = run_checks(with_tests=False)
     assert report["root"] == ROOT.as_posix()
     ids = {item["check_id"] for item in report["checks"]}
     assert {"structure", "contracts", "human_gates", "package_boundary"} <= ids
-    record = json.loads((TOOLS / "reports" / "verify.json").read_text(encoding="utf-8"))
-    assert record["status"] == "pending"
-    assert record["verified_at"] is None
+    assert (TOOLS / "reports" / "verify.json").read_bytes() == before
+    record = json.loads(before.decode("utf-8"))
+    assert record["status"] in {"pending", "verified", "rejected"}
+    assert "independent_reviewer" not in record or record["status"] != "pending"
 
 
 def test_verify_cli_passes_and_leaves_the_human_record_alone():
@@ -469,3 +476,124 @@ def test_demo_dataset_is_synthetic_and_deterministic():
     assert rows[0][0] == 0.0
     assert all(y > 0 for _, y in rows)
     assert series() == rows, "the demo fixture must be byte-stable across calls"
+
+
+# --------------------------------------------------------------------------
+# `setup` must work before the interpreter exists
+# --------------------------------------------------------------------------
+def test_launchers_delegate_setup_before_checking_the_interpreter():
+    """`run.ps1 setup` has to work precisely when .venv is missing."""
+    ps1 = (ROOT / "run.ps1").read_text(encoding="utf-8")
+    assert "setup.ps1" in ps1
+    # The setup branch must come before the interpreter lookup.
+    assert ps1.index("if ($Command -in @('setup', 'bootstrap'))") < ps1.index(
+        "Project Python is missing."
+    )
+    sh = (ROOT / "run.sh").read_text(encoding="utf-8")
+    assert "setup.sh" in sh
+    assert sh.index("setup|bootstrap)") < sh.index("Project Python is missing.")
+
+
+def test_run_ps1_avoids_the_automatic_args_variable():
+    """`$Args` is a PowerShell automatic variable; reusing it mis-binds options."""
+    text = (ROOT / "run.ps1").read_text(encoding="utf-8")
+    assert "[string[]]$Arguments" in text
+    assert "[string[]]$Args" not in text
+
+
+def test_setup_dry_run_is_reachable_without_a_venv():
+    """`run.ps1 setup --dry-run` must work with no .venv, on either PowerShell."""
+    import shutil
+
+    shell = shutil.which("pwsh") or (
+        shutil.which("powershell") if sys.platform == "win32" else None
+    )
+    if shell is None:
+        pytest.skip("no PowerShell interpreter available")
+    result = subprocess.run(
+        [shell, "-NoProfile", "-File", str(ROOT / "run.ps1"), "setup", "--dry-run"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=300,
+    )
+    assert "plan (dry run" in result.stdout, result.stdout + result.stderr
+    assert "requires-python" in result.stdout
+
+
+# --------------------------------------------------------------------------
+# final-review: the only way to record an independent verification
+# --------------------------------------------------------------------------
+def test_final_review_is_a_narrow_human_interface():
+    from scripts import final_review
+
+    with pytest.raises(final_review.ReviewError):
+        final_review.validate_reviewer("Codex agent")
+    with pytest.raises(final_review.ReviewError):
+        final_review.validate_reviewer("   ")
+    assert final_review.validate_reviewer("Prof. Li") == "Prof. Li"
+
+
+def test_final_review_requires_a_note_and_a_check():
+    from scripts import final_review
+
+    with pytest.raises(final_review.ReviewError, match="--note is required"):
+        final_review.record(reviewer="Prof. Li", note="  ", checks=[{"check_id": "x",
+                             "status": "pass", "evidence": [], "notes": ""}], accept=True)
+    with pytest.raises(final_review.ReviewError, match="at least one --check"):
+        final_review.record(reviewer="Prof. Li", note="looked at it", checks=[], accept=True)
+
+
+def test_final_review_refuses_to_mark_a_failing_check_as_verified():
+    from scripts import final_review
+
+    checks = [{"check_id": "figure_1", "status": "fail", "evidence": [], "notes": ""}]
+    with pytest.raises(final_review.ReviewError, match="cannot record 'verified'"):
+        final_review.record(reviewer="Prof. Li", note="mostly fine", checks=checks, accept=True)
+
+
+def test_final_review_does_not_upgrade_a_machine_verify_run():
+    """The tool must not read a deterministic run to fill in reviewer or checks."""
+    text = (SCRIPTS / "final_review.py").read_text(encoding="utf-8")
+    assert "verify-run.json" not in text
+    assert "status=\"verified\"" not in text or "accept" in text
+    assert "reviewer=" in text
+
+
+def test_final_review_record_and_reset_leave_the_tree_clean():
+    report_path = TOOLS / "reports" / "verify.json"
+    before = report_path.read_bytes()
+    from scripts import final_review
+
+    try:
+        report = final_review.record(
+            reviewer="Prof. Li",
+            note="independent review of results, figures and claims",
+            checks=[
+                {"check_id": "deterministic_chain", "status": "pass",
+                 "evidence": ["ran run.ps1 verify --with-tests"], "notes": ""},
+            ],
+            accept=True,
+        )
+        assert report["status"] == "verified"
+        assert report["independent_reviewer"] == "Prof. Li"
+        assert final_review.schema_errors(report) == []
+        # The recorded review must satisfy the contract validator.
+        from scripts.validate_contracts import validate_project
+
+        assert [e for e in validate_project(ROOT) if "verify.json" in e] == []
+    finally:
+        final_review.reset()
+    assert report_path.read_bytes() == before, "reset must restore the shipped pending report"
+
+
+def test_final_review_status_is_reflected_in_the_gate_report():
+    from scripts import final_review
+
+    report = final_review.load_report()
+    assert report["status"] in {"pending", "verified", "rejected"}
+    facts = final_review.gate7_dependencies()
+    assert "g7_approved" in facts
+    # Recording a verification never approves G7 by itself.
+    assert facts["g7_approved"] is False
