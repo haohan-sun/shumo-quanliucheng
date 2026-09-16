@@ -317,6 +317,33 @@ def test_subprocess_scripts_keep_the_virtual_environment(monkeypatch):
         )
 
 
+def test_a_working_directory_is_not_scanned_for_links(tmp_path):
+    """A tracked run must accept a cwd that merely *contains* an external link.
+
+    On POSIX ``<venv>/bin/python`` is a symlink to the base interpreter, so
+    scanning every child of the repository root rejected the whole run with
+    "artifact link outside project". A working directory is a location, not
+    content, so only the directory itself is validated.
+    """
+    from scripts.artifact_state import resolve_artifact
+
+    root = tmp_path
+    (root / "work").mkdir()
+    outside = tmp_path.parent / "outside-target.txt"
+    outside.write_text("x", encoding="utf-8")
+    link = root / "work" / "python"
+    try:
+        link.symlink_to(outside)
+    except (OSError, NotImplementedError):
+        pytest.skip("creating symlinks is not permitted in this environment")
+
+    # As a location: accepted.
+    assert resolve_artifact("work", root, scan_children=False) == (root / "work").resolve()
+    # As content: still rejected, because a Gate dependency must not escape.
+    with pytest.raises(ValueError, match="artifact link outside project"):
+        resolve_artifact("work", root)
+
+
 # --------------------------------------------------------------------------
 # bootstrap
 # --------------------------------------------------------------------------

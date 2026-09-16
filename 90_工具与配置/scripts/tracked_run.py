@@ -29,7 +29,10 @@ OUTPUT_KINDS = {"metrics", "figure", "table", "artifact"}
 
 
 def _inside_existing_directory(value: str | Path, root: Path) -> Path:
-    target = resolve_artifact(str(value), root)
+    # A working directory is a location, not content: resolve it without walking
+    # every child, so an unrelated link (for example a POSIX venv's
+    # ``bin/python`` pointing at the base interpreter) cannot fail a valid run.
+    target = resolve_artifact(str(value), root, scan_children=False)
     if not target.is_dir():
         raise ValueError(f"working directory is missing or not a directory: {value}")
     return target

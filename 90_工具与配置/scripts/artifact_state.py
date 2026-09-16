@@ -47,13 +47,25 @@ GATE_PARENTS = {"G2": ["G1"], "G3": ["G2"], "G4": ["G3"], "G5": ["G4"],
                 "G6": ["G5"], "G7": ["G6"]}
 
 
-def resolve_artifact(dep: str, root: Path = ROOT) -> Path:
-    """Reject traversal and links escaping the project, including nested links."""
+def resolve_artifact(dep: str, root: Path = ROOT, *, scan_children: bool = True) -> Path:
+    """Reject traversal and links escaping the project.
+
+    ``scan_children`` controls how much is checked when the target is a directory:
+
+    * ``True`` (default) — the directory is an *artifact* that will be hashed or
+      snapshotted, so every nested entry is walked and a link escaping the project
+      is rejected.  This is what a Gate dependency needs.
+    * ``False`` — the directory is being used as a *location* (a working directory,
+      a runs root) rather than as content.  Only the resolved directory itself is
+      validated, so unrelated links elsewhere in the tree cannot break the call.
+      ``<venv>/bin/python`` is exactly such a case, and requiring a full scan made
+      a tracked run fail on POSIX.
+    """
     root = root.resolve()
     target = (root / dep).resolve()
     if not target.is_relative_to(root):
         raise ValueError(f"artifact outside project: {dep}")
-    if target.is_dir():
+    if scan_children and target.is_dir():
         for item in target.rglob("*"):
             if not item.resolve().is_relative_to(root):
                 raise ValueError(f"artifact link outside project: {item}")
