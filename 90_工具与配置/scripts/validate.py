@@ -5,6 +5,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from scripts._project import resolve_python
+
 TOOLS_ROOT = Path(__file__).resolve().parents[1]
 ROOT = TOOLS_ROOT.parent
 
@@ -14,17 +19,18 @@ def main() -> int:
     parser.add_argument("--with-tests", action="store_true")
     parser.add_argument("--submission", action="store_true")
     args = parser.parse_args()
+    python = resolve_python()
     commands = [
-        [sys.executable, str(TOOLS_ROOT / "scripts" / "doctor.py")],
-        [sys.executable, str(TOOLS_ROOT / "scripts" / "verify_structure.py")],
-        [sys.executable, str(TOOLS_ROOT / "scripts" / "validate_contracts.py")],
+        [python, str(TOOLS_ROOT / "scripts" / "doctor.py")],
+        [python, str(TOOLS_ROOT / "scripts" / "verify_structure.py")],
+        [python, str(TOOLS_ROOT / "scripts" / "validate_contracts.py")],
     ]
     if args.submission:
         commands.append(
-            [sys.executable, str(TOOLS_ROOT / "scripts" / "compliance.py"), "--submission"]
+            [python, str(TOOLS_ROOT / "scripts" / "compliance.py"), "--submission"]
         )
     if args.with_tests:
-        commands.append([sys.executable, "-m", "pytest"])
+        commands.append([python, "-m", "pytest"])
     for command in commands:
         result = subprocess.run(command, cwd=ROOT, check=False)
         if result.returncode:

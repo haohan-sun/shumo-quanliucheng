@@ -13,7 +13,7 @@ from typing import Any
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from scripts._project import ROOT, dump_json, load_json, load_yaml
+from scripts._project import ROOT, dump_json, load_json, load_yaml, resolve_python
 from scripts.artifact_state import sync_manifest
 from scripts.build_ai_usage_report import build as build_ai_report
 from scripts.build_ai_usage_report import validate_ledger
@@ -202,7 +202,7 @@ def stop_checks(root: Path = ROOT) -> tuple[list[str], bool]:
         if not test_paths:
             raise FileNotFoundError("no lifecycle guard tests found")
         test = subprocess.run(
-            [sys.executable, "-m", "pytest", "-q", *test_paths], cwd=root, capture_output=True,
+            [resolve_python(), "-m", "pytest", "-q", *test_paths], cwd=root, capture_output=True,
             text=True, check=False, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}, timeout=120,
         )
         if test.returncode:

@@ -262,6 +262,35 @@ def test_dependency_guard_accepts_a_relative_directory():
     assert "package boundary: PASS" in result.stdout
 
 
+def test_resolve_python_returns_a_real_path():
+    """A tracked run must record an interpreter path that exists.
+
+    On POSIX ``sys.executable`` is ``<venv>/bin/python`` — a symlink into the base
+    interpreter outside the project — and a tracked run rejected it as an artifact
+    escaping the workspace, which broke the demo on Linux CI.
+    """
+    from pathlib import Path as _Path
+
+    from scripts._project import resolve_python
+
+    resolved = resolve_python()
+    assert _Path(resolved).is_file()
+    assert "python" in _Path(resolved).name.lower()
+
+
+def test_demo_records_the_resolved_interpreter():
+    """The demo must not hand a venv symlink to the tracked-run machinery."""
+    import scripts.run_demo as demo
+
+    source = demo.__file__
+    assert source is not None
+    text = Path(source).read_text(encoding="utf-8")
+    assert "sys.executable" not in text, (
+        "run_demo must use resolve_python() so POSIX venv symlinks stay inside the project"
+    )
+    assert "resolve_python()" in text
+
+
 # --------------------------------------------------------------------------
 # bootstrap
 # --------------------------------------------------------------------------

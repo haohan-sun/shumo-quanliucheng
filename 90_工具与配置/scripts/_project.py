@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import sys
 from fnmatch import fnmatch
 from pathlib import Path
 from typing import Any
@@ -206,3 +207,21 @@ def within_root(path: Path, root: Path = ROOT) -> bool:
     except ValueError:
         return False
     return True
+
+
+def resolve_python(executable: str | None = None) -> str:
+    """Canonical interpreter path that is safe to hand to a tracked run.
+
+    ``sys.executable`` reports the path used to start the process, which on POSIX
+    is ``<venv>/bin/python`` — a symlink into the base interpreter *outside* the
+    project.  A child process inherits that value, and recording a tracked run
+    would then reject the interpreter as an artifact that escapes the workspace.
+    Resolving once gives a path that stays valid both as a command and as a
+    recorded artifact.
+    """
+    candidate = Path(executable or sys.executable)
+    try:
+        resolved = candidate.resolve()
+    except OSError:
+        return str(candidate)
+    return str(resolved) if resolved.exists() else str(candidate)

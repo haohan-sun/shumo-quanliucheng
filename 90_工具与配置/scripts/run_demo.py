@@ -29,7 +29,7 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from scripts._project import ROOT, dump_json, load_json, sha256_file
+from scripts._project import ROOT, dump_json, load_json, resolve_python, sha256_file
 from scripts.claim_registry import check_registry
 from scripts.run_record import validate_run_record
 from scripts.tracked_run import _output_spec, execute_tracked
@@ -122,7 +122,10 @@ def step_run(config: dict) -> tuple[dict, dict, Path]:
     # project root); absolute paths are still recorded root-relative.
     run_dir = tracked(
         command=[
-            sys.executable,
+            # Canonical interpreter path: on POSIX the project interpreter is a
+            # venv symlink pointing outside the workspace, which a tracked run
+            # would reject as an artifact escaping the project.
+            resolve_python(),
             str(CODE),
             "--input",
             str(DATA),

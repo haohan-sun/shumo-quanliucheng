@@ -36,7 +36,7 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from scripts._project import ROOT, TOOLS_ROOT, dump_json, load_json
+from scripts._project import ROOT, TOOLS_ROOT, dump_json, load_json, resolve_python
 
 REPORT_PATH = TOOLS_ROOT / "reports" / "verify-run.json"
 PASS = "pass"
@@ -180,7 +180,7 @@ def _check_package_boundary(root: Path) -> list[str]:
 
 def _check_tests(root: Path) -> tuple[str, list[str]]:
     result = subprocess.run(
-        [sys.executable, "-m", "pytest", "-q"],
+        [resolve_python(), "-m", "pytest", "-q"],
         cwd=root,
         capture_output=True,
         text=True,
