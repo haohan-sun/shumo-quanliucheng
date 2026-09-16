@@ -215,6 +215,53 @@ def test_package_files_skips_interpreter_caches():
     assert "__pycache__" in PRUNED_CACHE_DIRS
 
 
+def test_junction_detection_works_without_python312(monkeypatch):
+    """`os.path.isjunction` is 3.12+; the project supports 3.11.
+
+    CI caught this as `AttributeError: module 'posixpath' has no attribute
+    'isjunction'`, which made the whole package-boundary check fail on 3.11.
+    """
+    import os
+
+    from scripts import package_guard
+
+    monkeypatch.setattr(package_guard, "_HAS_ISJUNCTION", False)
+    assert package_guard.is_link_like(ROOT / "run.ps1") is False
+    assert package_guard.is_link_like(ROOT / "90_工具与配置") is False
+    assert package_guard.is_link_like(ROOT / "definitely-missing") is False
+    assert package_guard.check_target(ROOT / "90_工具与配置" / "scripts") == []
+    assert os.path.__name__ in {"ntpath", "posixpath"}
+
+
+def test_junction_detection_still_reports_a_symlink(tmp_path):
+    from scripts import package_guard
+
+    (tmp_path / "real.txt").write_text("x", encoding="utf-8")
+    link = tmp_path / "link.txt"
+    try:
+        link.symlink_to(tmp_path / "real.txt")
+    except (OSError, NotImplementedError):
+        pytest.skip("creating symlinks is not permitted in this environment")
+    assert package_guard.is_link_like(link) is True
+
+
+def test_dependency_guard_accepts_a_relative_directory():
+    """A relative target used to raise ValueError from pathlib.relative_to."""
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPTS / "package_guard.py"),
+            "90_工具与配置/scripts",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "package boundary: PASS" in result.stdout
+
+
 # --------------------------------------------------------------------------
 # bootstrap
 # --------------------------------------------------------------------------

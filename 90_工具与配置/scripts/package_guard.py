@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import os
+import stat
 import sys
 import zipfile
 from pathlib import Path
@@ -27,6 +28,33 @@ BOUNDARIES_PATH = ROOT / "90_工具与配置" / "configs" / "artifact_boundaries
 # are skipped while walking a package tree; the explicit boundary rules still
 # reject them when they appear inside an actual archive namelist.
 PRUNED_DIRECTORY_NAMES = frozenset({"__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache"})
+
+# ``os.path.isjunction`` only exists on Python 3.12+, while this project supports
+# 3.11 (see pyproject.toml requires-python).  Resolve the capability once instead
+# of calling the attribute directly, which raised AttributeError on 3.11 and made
+# the whole package-boundary check fail.
+_HAS_ISJUNCTION = hasattr(os.path, "isjunction")
+
+
+def is_link_like(path: Path) -> bool:
+    """True for symlinks and, where the platform can tell, NTFS junctions.
+
+    A junction is a directory reparse point.  Without ``os.path.isjunction`` the
+    conservative test is "reparse point that is not a symlink", which is exactly
+    what a junction looks like; anything undecipherable is treated as NOT a link so
+    that a missing capability degrades to the previous (weaker) behaviour rather
+    than failing closed on legitimate files.
+    """
+    if path.is_symlink():
+        return True
+    if _HAS_ISJUNCTION:
+        return bool(os.path.isjunction(path))
+    try:
+        attributes = path.lstat().st_file_attributes
+    except (AttributeError, OSError, ValueError):
+        return False
+    reparse_point = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+    return bool(attributes & reparse_point)
 
 
 def load_boundaries(path: Path = BOUNDARIES_PATH) -> dict[str, Any]:
@@ -52,11 +80,16 @@ def excluded(path_text: str, boundaries: dict[str, Any]) -> str | None:
 
 
 def collect_paths(target: Path) -> list[str]:
+    # Resolve once: comparing a relative walk result against an absolute base
+    # raised ValueError, so `package_guard.py <relative-dir>` could not be used.
+    target = Path(target).resolve()
     if target.is_file() and target.suffix == ".zip":
         with zipfile.ZipFile(target) as archive:
             return archive.namelist()
     if target.is_dir():
-        base = ROOT if target.resolve().is_relative_to(ROOT) else target.resolve()
+        base = ROOT.resolve()
+        if not target.is_relative_to(base):
+            base = target
         paths = []
         for directory, dirs, files in os.walk(target, followlinks=False):
             # Regenerable interpreter caches are implementation noise, not
@@ -65,7 +98,7 @@ def collect_paths(target: Path) -> list[str]:
             dirs[:] = [name for name in dirs if name not in PRUNED_DIRECTORY_NAMES]
             for name in dirs + files:
                 item = Path(directory) / name
-                if item.is_symlink() or os.path.isjunction(item):
+                if is_link_like(item):
                     raise ValueError(f"package contains link: {item}")
                 paths.append(item.relative_to(base).as_posix())
         return sorted(paths)
@@ -104,7 +137,7 @@ def assert_package_files(paths: Iterable[Path], root: Path = ROOT,
         for parent in (absolute, *absolute.parents):
             if parent == root:
                 break
-            if parent.is_symlink() or os.path.isjunction(parent):
+            if is_link_like(parent):
                 raise ValueError(f"linked package source: {path}")
 
 
