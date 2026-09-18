@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -499,6 +500,157 @@ def test_run_ps1_avoids_the_automatic_args_variable():
     text = (ROOT / "run.ps1").read_text(encoding="utf-8")
     assert "[string[]]$Arguments" in text
     assert "[string[]]$Args" not in text
+
+
+def _powershell() -> str | None:
+    import shutil
+
+    return shutil.which("pwsh") or (
+        shutil.which("powershell") if sys.platform == "win32" else None
+    )
+
+
+def _run_setup(*args: str) -> subprocess.CompletedProcess[str]:
+    shell = _powershell()
+    if shell is None:
+        pytest.skip("no PowerShell interpreter available")
+    return subprocess.run(
+        [shell, "-NoProfile", "-File", str(ROOT / "run.ps1"), "setup", *args],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=300,
+    )
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--dry-run",),
+        ("--dry-run", "--ci", "--no-doctor"),
+        ("--dry-run", "--with-extras", "document"),
+        ("--dry-run", "--with-extras", "document,visualization"),
+        ("--dry-run", "--installer", "pip"),
+        ("--dry-run", "--installer", "auto"),
+        ("--dry-run", "--force-recreate"),
+    ],
+)
+def test_setup_accepts_valid_options(args):
+    result = _run_setup(*args)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "requires-python" in result.stdout
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--force-recraete",),          # typo must not silently run a normal setup
+        ("--dry-run", "--nope"),
+        ("extra",),                     # unexpected positional
+        ("--dry-run", "bogus"),
+        ("--installer",),               # missing value
+        ("--with-extras",),             # missing value
+        ("--installer", "--ci"),        # value looks like another option
+        ("--with-extras", "--ci"),
+        ("--installer", "nope"),        # not auto|uv|pip
+    ],
+)
+def test_setup_rejects_bad_options_with_exit_2(args):
+    """Unknown input is refused rather than ignored: a typo must not run setup."""
+    result = _run_setup(*args)
+    assert result.returncode == 2, (
+        f"expected exit 2 for {args}, got {result.returncode}\n{result.stdout}{result.stderr}"
+    )
+    combined = result.stdout + result.stderr
+    assert "run.ps1 setup" in combined
+    assert "plan (dry run" not in combined, "a rejected invocation must not run setup"
+
+
+def test_setup_launcher_does_not_warn_and_ignore():
+    """The old behaviour printed a warning and continued; that must be gone."""
+    text = (ROOT / "run.ps1").read_text(encoding="utf-8")
+    assert "ignoring unknown option" not in text
+    assert "ignoring extra argument" not in text
+    assert "unknown option" in text and "unexpected argument" in text
+
+
+def _posix_bash() -> str | None:
+    """A bash that can actually run the repository's shell entry points.
+
+    On Windows `shutil.which("bash")` can resolve to the WSL launcher, which has
+    no access to the Windows checkout and no python3 on PATH; Git Bash is the one
+    that works, so prefer it explicitly and verify before use.
+    """
+    candidates = []
+    if sys.platform == "win32":
+        candidates.append(r"C:\Program Files\Git\bin\bash.exe")
+    candidates.append(shutil.which("bash") or "")
+    for candidate in candidates:
+        if not candidate or not Path(candidate).is_file():
+            continue
+        probe = subprocess.run(
+            [candidate, "-c", "command -v python3 >/dev/null || command -v python >/dev/null"],
+            capture_output=True,
+            check=False,
+            timeout=60,
+        )
+        if probe.returncode == 0:
+            return candidate
+    return None
+
+
+def test_setup_sh_rejects_bad_options_too():
+    """POSIX and Windows must agree: both refuse, both exit 2."""
+    bash = _posix_bash()
+    if bash is None:
+        pytest.skip("no usable bash with a python interpreter on PATH")
+    for args in (["--force-recraete"], ["--installer"], ["--installer", "nope"], ["extra"]):
+        result = subprocess.run(
+            [bash, "./run.sh", "setup", *args],
+            cwd=ROOT,
+            capture_output=True,
+            check=False,
+            timeout=300,
+        )
+        # Decode explicitly: bash on Windows can emit bytes that are not valid in
+        # the locale codec, which would otherwise raise instead of reporting.
+        stderr = result.stderr.decode("utf-8", errors="replace")
+        assert result.returncode == 2, f"{args} -> {result.returncode}: {stderr}"
+
+
+def test_demo_check_only_is_reachable_through_the_cli():
+    """The README documents `run.ps1 demo --check-only`; argparse must accept it."""
+    from scripts.cli import build_parser
+
+    parser = build_parser()
+    args = parser.parse_args(["demo", "--check-only"])
+    assert args.command == "demo"
+    assert args.check_only is True
+
+
+def test_demo_flags_are_forwarded_to_the_script(monkeypatch):
+    from scripts import cli
+
+    captured: list[list[str]] = []
+
+    def fake_run_module(module, argv, *, label=None):
+        captured.append([module, *argv])
+        return 0
+
+    monkeypatch.setattr(cli, "_run_module", fake_run_module)
+    for argv, expected in (
+        (["demo", "--check-only"], "--check-only"),
+        (["demo", "--json"], "--json"),
+        (["demo"], None),
+    ):
+        captured.clear()
+        cli.main(argv)
+        assert captured and captured[0][0] == "run_demo.py"
+        if expected is None:
+            assert captured[0][1:] == []
+        else:
+            assert expected in captured[0][1:]
 
 
 def test_setup_dry_run_is_reachable_without_a_venv():

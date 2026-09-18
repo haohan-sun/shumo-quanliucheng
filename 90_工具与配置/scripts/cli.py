@@ -292,6 +292,15 @@ def cmd_demo(args: argparse.Namespace) -> int:
     argv = list(args.demo_args)
     if argv and argv[0] == "--":
         argv = argv[1:]
+    # Declared flags are forwarded explicitly: argparse rejects an undeclared
+    # option even under REMAINDER, which made the documented
+    # `run.ps1 demo --check-only` unusable.
+    if getattr(args, "check_only", False) and "--check-only" not in argv:
+        argv.append("--check-only")
+    if getattr(args, "json", False) and "--json" not in argv:
+        argv.append("--json")
+    if getattr(args, "keep_build", False) and "--keep-build" not in argv:
+        argv.append("--keep-build")
     return _run_module("run_demo.py", argv)
 
 
@@ -343,6 +352,13 @@ def cmd_info(_: argparse.Namespace) -> int:
         print(SETUP_HINT)
     else:
         print(f"project python  : {python}")
+    try:
+        from scripts.workflow_mode import current_mode
+
+        mode_path = ROOT / "90_工具与配置" / "configs" / "workflow-mode.txt"
+        print(f"workflow mode   : {current_mode(mode_path)}")
+    except Exception as error:  # a broken mode config must not hide the rest
+        print(f"workflow mode   : unavailable ({type(error).__name__})")
     return 0
 
 
@@ -487,9 +503,22 @@ def build_parser() -> argparse.ArgumentParser:
 
     demo = add("demo", cmd_demo, "Run or re-check the toy end-to-end demo.")
     demo.add_argument(
+        "--check-only",
+        dest="check_only",
+        action="store_true",
+        help="Verify an existing demo build instead of re-running it.",
+    )
+    demo.add_argument("--json", action="store_true", help="Print a machine-readable summary.")
+    demo.add_argument(
+        "--keep-build",
+        dest="keep_build",
+        action="store_true",
+        help="Reuse the existing build directory.",
+    )
+    demo.add_argument(
         "demo_args",
         nargs=argparse.REMAINDER,
-        help="Arguments for scripts/run_demo.py, e.g. --check-only (use '--' before them).",
+        help="Extra arguments for scripts/run_demo.py (use '--' before them).",
     )
 
     route = add("route", cmd_route, "Preview deterministic routing for one request.")

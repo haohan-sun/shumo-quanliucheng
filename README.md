@@ -17,6 +17,12 @@
 
 ---
 
+## 当前状态
+
+- 核心工程与跨平台 CI 已稳定（Ubuntu/Windows × Python 3.11/3.13 全绿）。
+- 这是一个**公开工作区模板**，不包含任何具体赛题、数据或竞赛成果；toy demo 是完全合成的。
+- 下一阶段的重点是用不同类型的历史真题做真实回归测试，而不是继续扩展框架。
+
 ## 3 分钟 Quick Start
 
 前置条件：**Python 3.11–3.13**（`pyproject.toml` 的 `requires-python` 是唯一权威）和
@@ -164,6 +170,10 @@ claim registry → 只引用已登记数字的论文片段。全部产物都在
 `90_工具与配置/configs/workflow-mode.txt`，所以团队能在仓库里看到正在用哪种模式；
 删掉该文件即回落到 `workflow-modes.yaml` 的 `default_mode`。
 
+模式是**项目配置，不是本地状态**：`modes set` 只写这一个文件，**不会自动 commit，也不会
+批准或撤销任何 Gate**。建议在正式运行前把这次模式切换 commit 下来，让一次完整工作所用
+的模式可以追溯；当前模式也会出现在 `run.ps1 gates` 与 `run.ps1 info` 的输出里。
+
 ### 记录独立最终验证
 
 `90_工具与配置/reports/verify.json` 必须由独立复核人具名完成。这是一个窄接口，只负责
@@ -306,8 +316,10 @@ F/I/UP/B 这些能抓到真实 bug 与不稳定写法的规则保持全量启用
 
 ## 来源与许可
 
-- **许可证待定**：本仓库尚未选择开源许可证，见 [LICENSE_PENDING.md](LICENSE_PENDING.md)。
-  在仓库所有者做出选择之前，请勿假定可以再分发或商用。
+- 本仓库的代码与文档采用 **[MIT License](LICENSE)**（Copyright (c) 2026 haohan-sun）。
+- 第三方组件仍受各自许可证约束，根许可证不改变它们的权利状态：逐项目清单与
+  例外（含 CC-BY-4.0 的历史制图参考）见 [NOTICE](NOTICE)。请勿把第三方代码
+  重新声明为 MIT，也不要删除其中的原始版权声明。
 - 第三方设计参考与许可证记录见
   [90_工具与配置/third_party/UPSTREAM_SOURCES.md](90_工具与配置/third_party/UPSTREAM_SOURCES.md)；
   `mm-mathematical-derivation` 的方法来源见其

@@ -77,31 +77,41 @@ if ($Command -in @('setup', 'bootstrap')) {
             '^--?force-?recreate$' { $setupParams['ForceRecreate'] = $true; continue }
             '^--?no-?doctor$' { $setupParams['NoDoctor'] = $true; continue }
             '^--?(with-?extras|extras)$' {
-                if ($index + 1 -lt $Arguments.Count) {
-                    $index++
-                    $setupParams['WithExtras'] = $Arguments[$index] -split ','
+                # A missing value must fail, not silently fall back to defaults: a
+                # typo would otherwise install a different environment than asked.
+                if ($index + 1 -ge $Arguments.Count -or $Arguments[$index + 1].StartsWith('-')) {
+                    Write-Host "run.ps1 setup: $token requires a value, e.g. --with-extras document." -ForegroundColor Red
+                    exit 2
                 }
+                $index++
+                $setupParams['WithExtras'] = $Arguments[$index] -split ','
                 continue
             }
             '^--?installer$' {
-                if ($index + 1 -lt $Arguments.Count) {
-                    $index++
-                    $choice = $Arguments[$index]
-                    if ($installerChoices -notcontains $choice) {
-                        Write-Host "run.ps1 setup: --installer must be one of $($installerChoices -join ', ')." -ForegroundColor Red
-                        exit 2
-                    }
-                    $setupParams['Installer'] = $choice
+                if ($index + 1 -ge $Arguments.Count -or $Arguments[$index + 1].StartsWith('-')) {
+                    Write-Host "run.ps1 setup: --installer requires a value: $($installerChoices -join ', ')." -ForegroundColor Red
+                    exit 2
                 }
+                $index++
+                $choice = $Arguments[$index]
+                if ($installerChoices -notcontains $choice) {
+                    Write-Host "run.ps1 setup: --installer must be one of $($installerChoices -join ', ')." -ForegroundColor Red
+                    exit 2
+                }
+                $setupParams['Installer'] = $choice
                 continue
             }
             default {
+                # Unknown input is refused rather than ignored, so a typo such as
+                # --force-recraete cannot silently run a normal setup. This matches
+                # setup.sh, which forwards to bootstrap.py where argparse exits 2.
                 if ($token.StartsWith('-')) {
-                    Write-Host "run.ps1 setup: ignoring unknown option '$token'." -ForegroundColor Yellow
+                    Write-Host "run.ps1 setup: unknown option '$token'." -ForegroundColor Red
                 } else {
-                    Write-Host "run.ps1 setup: ignoring extra argument '$token'." -ForegroundColor Yellow
+                    Write-Host "run.ps1 setup: unexpected argument '$token'." -ForegroundColor Red
                 }
-                continue
+                Write-Host "Run '.\run.ps1 setup --help' to see the supported options." -ForegroundColor Red
+                exit 2
             }
         }
     }
