@@ -619,6 +619,29 @@ def test_setup_sh_rejects_bad_options_too():
         assert result.returncode == 2, f"{args} -> {result.returncode}: {stderr}"
 
 
+def test_shell_entry_points_are_executable_in_git():
+    """run.sh and setup.sh must carry the executable bit in the repository.
+
+    CI on Linux caught this: without the bit, a fresh clone could not run
+    `./setup.sh` at all (`Permission denied`, exit 126), because Windows does not
+    track Unix permissions and the bit was never set.
+    """
+    tracked = subprocess.run(
+        ["git", "-C", str(ROOT), "ls-files", "-s", "run.sh", "setup.sh"],
+        capture_output=True,
+        check=True,
+        text=True,
+    ).stdout
+    # ls-files -s prints "<mode> <sha> <stage>\t<path>".
+    modes = {
+        line.split("\t")[1]: line.split("\t")[0].split()[0]
+        for line in tracked.splitlines()
+        if line.strip() and "\t" in line
+    }
+    assert modes.get("run.sh") == "100755", tracked
+    assert modes.get("setup.sh") == "100755", tracked
+
+
 def test_demo_check_only_is_reachable_through_the_cli():
     """The README documents `run.ps1 demo --check-only`; argparse must accept it."""
     from scripts.cli import build_parser
